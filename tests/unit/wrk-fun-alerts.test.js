@@ -1,0 +1,196 @@
+'use strict'
+
+const test = require('brittle')
+const { processThingAlerts } = require('../../workers/lib/wrk-fun-alerts')
+
+test('wrk-fun-alerts: processThingAlerts with no lib', async t => {
+  const mockWorker = {
+    loadLib: () => null
+  }
+
+  const result = processThingAlerts.call(mockWorker, {})
+  t.is(result, null)
+})
+
+test('wrk-fun-alerts: processThingAlerts with no alerts config', async t => {
+  const mockWorker = {
+    loadLib: () => ({ specs: {} }),
+    conf: { thing: {} }
+  }
+
+  const result = processThingAlerts.call(mockWorker, { type: 'miner' })
+  t.is(result, null)
+})
+
+test('wrk-fun-alerts: processThingAlerts with no thing type config', async t => {
+  const mockWorker = {
+    loadLib: () => ({ specs: {} }),
+    conf: { thing: { alerts: {} } }
+  }
+
+  const result = processThingAlerts.call(mockWorker, { type: 'miner' })
+  t.is(result, null)
+})
+
+test('wrk-fun-alerts: processThingAlerts with no snap', async t => {
+  const mockWorker = {
+    loadLib: () => ({ specs: {} }),
+    conf: { thing: { alerts: { miner: {} } } },
+    getSpecTags: () => []
+  }
+
+  const thing = { type: 'miner', last: { err: 'No snap' } }
+  const result = processThingAlerts.call(mockWorker, thing)
+
+  t.ok(Array.isArray(result))
+  t.is(result.length, 1)
+  t.is(result[0].name, 'error_snap')
+  t.is(result[0].code, 'error_snap')
+  t.is(result[0].severity, 'medium')
+})
+
+test('wrk-fun-alerts: processThingAlerts with errors from snap', async t => {
+  const mockWorker = {
+    loadLib: () => ({ specs: {} }),
+    conf: {
+      thing: {
+        alerts: {
+          miner: {
+            test_error: { description: 'Test error', severity: 'high' }
+          }
+        }
+      }
+    },
+    getSpecTags: () => []
+  }
+
+  const thing = {
+    type: 'miner',
+    last: {
+      snap: {
+        raw_errors: [{
+          name: 'test_error',
+          code: 'TEST_ERR',
+          timestamp: Date.now(),
+          message: 'Test error message'
+        }]
+      }
+    }
+  }
+
+  const result = processThingAlerts.call(mockWorker, thing)
+
+  t.ok(Array.isArray(result))
+  t.is(result.length, 1)
+  t.is(result[0].name, 'test_error')
+  t.is(result[0].code, 'TEST_ERR')
+  t.is(result[0].severity, 'high')
+  t.is(result[0].message, 'Test error message')
+})
+
+test('wrk-fun-alerts: processThingAlerts with spec validation', async t => {
+  const mockWorker = {
+    loadLib: () => ({
+      specs: {
+        miner: {
+          test_alert: {
+            valid: () => true,
+            probe: () => ({ test: 'data' })
+          }
+        }
+      }
+    }),
+    conf: {
+      thing: {
+        alerts: {
+          miner: {
+            test_alert: {
+              name: 'Test Alert',
+              code: 'TEST_ALERT',
+              description: 'Test alert description',
+              severity: 'medium'
+            }
+          }
+        }
+      }
+    },
+    getSpecTags: () => ['miner']
+  }
+
+  const thing = {
+    type: 'miner',
+    last: { snap: { success: true } },
+    info: { test: 'info' },
+    id: 'test-id'
+  }
+
+  const result = processThingAlerts.call(mockWorker, thing)
+
+  t.ok(Array.isArray(result))
+  t.is(result.length, 1)
+  t.is(result[0].name, 'Test Alert')
+  t.is(result[0].code, 'TEST_ALERT')
+  t.is(result[0].description, 'Test alert description')
+  t.is(result[0].severity, 'medium')
+})
+
+test('wrk-fun-alerts: processThingAlerts with spec validation error', async t => {
+  const mockWorker = {
+    loadLib: () => ({
+      specs: {
+        miner: {
+          test_alert: {
+            valid: () => { throw new Error('Validation error') },
+            probe: () => null
+          }
+        }
+      }
+    }),
+    conf: {
+      thing: {
+        alerts: {
+          miner: {}
+        }
+      }
+    },
+    getSpecTags: () => ['miner']
+  }
+
+  const thing = {
+    type: 'miner',
+    last: { snap: { success: true } },
+    info: { test: 'info' },
+    id: 'test-id'
+  }
+
+  const result = processThingAlerts.call(mockWorker, thing)
+
+  t.ok(Array.isArray(result))
+  t.is(result.length, 1)
+  t.is(result[0].name, 'test_alert')
+  t.is(result[0].code, 'test_alert')
+  t.is(result[0].description, 'Validation error')
+  t.is(result[0].severity, 'medium')
+})
+
+test('wrk-fun-alerts: processThingAlerts returns null when no alerts', async t => {
+  const mockWorker = {
+    loadLib: () => ({ specs: {} }),
+    conf: {
+      thing: {
+        alerts: {
+          miner: {}
+        }
+      }
+    },
+    getSpecTags: () => []
+  }
+
+  const thing = {
+    type: 'miner',
+    last: { snap: { success: true } }
+  }
+
+  const result = processThingAlerts.call(mockWorker, thing)
+  t.is(result, null)
+})
