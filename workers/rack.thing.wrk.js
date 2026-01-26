@@ -236,7 +236,7 @@ class WrkProcVar extends TetherWrkBase {
       }
 
       // The device should be offline if marked as maintenance
-      if (!thg.ctrl && thg.info?.container === 'maintenance') {
+      if (thg.info?.container === 'maintenance') {
         snap = this._getOfflineSnap()
       } else if (thg.ctrl) {
         try {
