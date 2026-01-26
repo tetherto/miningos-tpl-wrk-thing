@@ -26,7 +26,7 @@ test('getLogsCountForTimeRange: handles no date range', async t => {
 })
 
 test('getLogsCountForTimeRange: handles no end date range', async t => {
-  const start = Date.now() - 10 * 5 * 60 * 1000
+  const start = Date.now() - 9 * 5 * 60 * 1000
   const result = getLogsCountForTimeRange(
     start,
     undefined,
@@ -38,7 +38,7 @@ test('getLogsCountForTimeRange: handles no end date range', async t => {
 })
 
 test('getLogsCountForTimeRange: valid key with time range', async t => {
-  const start = Date.now() - 10 * 5 * 60 * 1000
+  const start = Date.now() - 9 * 5 * 60 * 1000
   const end = Date.now()
   const result1 = getLogsCountForTimeRange(
     start,
@@ -47,7 +47,7 @@ test('getLogsCountForTimeRange: valid key with time range', async t => {
     DEFAULT_TIMEFRAMES
   )
   const result2 = getLogsCountForTimeRange(
-    start,
+    Date.now() - 49 * 60 * 1000,
     end,
     'stat-1m',
     DEFAULT_TIMEFRAMES

@@ -42,7 +42,7 @@ const getLogsCountForTimeRange = (start, end, key, statTimeframes) => {
   if (!currentLogCron) return 0
   try {
     const timeInterval = getIntervalFromCron(currentLogCron)
-    return Math.ceil((end - start) / timeInterval)
+    return Math.ceil((end - start) / timeInterval) + 1
   } catch (error) {
     return 0
   }

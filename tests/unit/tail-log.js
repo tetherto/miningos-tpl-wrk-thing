@@ -115,7 +115,7 @@ test('tailLog: Test tailLog', async main => {
         type: 'miner',
         tag: 't-miner',
         end: getRounded5MinTimeWithOffset(2).getTime(),
-        start: getRounded5MinTimeWithOffset(10).getTime()
+        start: getRounded5MinTimeWithOffset(9).getTime()
       })
       t.ok(resp.length === 8)
     }
@@ -155,7 +155,7 @@ test('tailLog: Test tailLog', async main => {
         type: 'miner',
         tag: 't-miner',
         end: getRounded5MinTimeWithOffset(0).getTime(),
-        start: getRounded5MinTimeWithOffset(100).getTime()
+        start: getRounded5MinTimeWithOffset(99).getTime()
       })
       t.ok(resp.length === 100)
     }
