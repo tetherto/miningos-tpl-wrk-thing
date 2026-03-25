@@ -21,7 +21,8 @@
   },
   "files": [
     "worker.js",
-    "workers/"
+    "workers/",
+    "tests/"
   ],
   "type": "commonjs",
   "scripts": {
