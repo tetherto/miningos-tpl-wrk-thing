@@ -1,28 +1,45 @@
 # miningos-tpl-wrk-thing
 
-## Table of Contents
+## Table of contents
 
 1. [Overview](#overview)
 2. [Architecture](#architecture)
-    1. [Detailed Component Architecture](#detailed-component-architecture)
-    2. [Object Model](#object-model)
-    3. [Worker Types](#worker-types)
-3. [Core Concepts](#core-concepts)
+    1. [Detailed component architecture](#detailed-component-architecture)
+    2. [Object model](#object-model)
+    3. [Worker types](#worker-types)
+3. [Core concepts](#core-concepts)
     1. [Thing](#thing)
-    2. [Tag System](#tag-system)
+    2. [Tag system](#tag-system)
     3. [Snapshot](#snapshot)
-4. [API Reference](#api-reference)
-    1. [Thing Management](#thing-management)
-    2. [Thing Operation](#thing-operation)
-    3. [Data Access](#data-access)
-       
+4. [API reference](#api-reference)
+    1. [Thing management](#thing-management)
+    2. [Thing operation](#thing-operation)
+    3. [Data access](#data-access)
+5. [OpenRPC specification](#openrpc-specification)
+
+## OpenRPC specification
+
+Machine-readable API documentation is available in the `docs/` folder:
+
+- `docs/openrpc.json` - OpenRPC 1.4.1 specification (20 methods, 25 schemas)
+- `docs/readme.md` - Documentation on how the spec is generated
+
+To regenerate after code changes:
+
+```bash
+npm run openrpc:generate
+npm run openrpc:validate
+```
+
+See [docs/readme.md](docs/readme.md) for details on the generation pipeline.
+
 ## Overview
 
 The WrkProcVar class provides a comprehensive base implementation for managing abstract entities (“things”) in MiningOS. Originally designed for physical device management, the framework has proven flexible enough to handle various data sources and services critical to mining operations.
 
 ## Architecture
 
-### Detailed Component Architecture:
+### Detailed component architecture
 
 ```mermaid
 graph TB
@@ -110,7 +127,7 @@ graph TB
 
 This comprehensive view reveals the complete system architecture including internal components and external integrations. The Facilities Layer provides pluggable services that workers initialize during startup via setInitFacs, including interval-based tasks (snapshot collection, log rotation, thing setup, and replica configuration refresh), scheduled statistics generation, network services with RPC/DHT capabilities, and distributed storage management. The dual-storage architecture separates volatile in-memory caches (containing things, logs, and replica configuration) from persistent Hyperbee databases, with time-series logs stored separately for efficient historical data access. External connections are defined through abstract methods that subclasses must implement for specific device types. The replication system leverages Hypercore's peer-to-peer protocol with replica discovery, enabling automatic master-slave synchronization where masters have full read/write capabilities while slaves operate in read-only mode. The Hook System provides extension points for subclasses to customize thing lifecycle operations.
 
-### Object Model
+### Object model
 
 The following is a fragment of [MiningOS object model](https://docs.mos.tether.io/) that contains the abstract class representing "thing" (highlighted in blue). The rounded nodes reprsent abstract classes and the one square node represents a concrete class:
 
@@ -155,10 +172,10 @@ flowchart BT
     style miningos-tlp-wrk-thing fill:#005,stroke-width:4px
 ```
 
-### Worker Types
+### Worker types
 The system implements a sophisticated multi-level inheritance hierarchy:
 
-#### Inheritance Levels
+#### Inheritance levels
 ```
 Level 1: bfx-wrk-base (Foundation)
     ↓
@@ -171,7 +188,7 @@ Level 4: Device Category Templates
 Level 5: Brand/Model Specific Implementations
 ```
 
-#### Implementation Pattern
+#### Implementation pattern
 Each level provides increasing specialization:
 - **Level 1**: Provides worker infrastructure (lifecycle, facilities, configuration)
 - **Level 2**: Provides worker infrastructure (lifecycle, facilities, configuration)
@@ -210,7 +227,7 @@ Available templates:
 
 This architecture allows maximum code reuse while supporting diverse hardware with minimal implementation effort.
 
-## Core Concepts
+## Core concepts
 
 ### Things
 
@@ -224,11 +241,11 @@ Periodic data collection from devices:
 - Operational status --- offline status is flagged by Thing class;
 - Errors (timeouts, connection failures, device errors);
 
-## API Reference
+## API reference
 
-### Thing Management
+### Thing management
 
-#### Register Thing
+#### Register thing
 ```javascript
 registerThing(req)
 ```
@@ -251,7 +268,7 @@ Creates a new device in the system.
 - `ERR_THING_WITH_CODE_ALREADY_EXISTS`: Duplicate code
 - `ERR_THING_CODE_INVALID`: Malformed string for code
 
-#### Update Thing
+#### Update thing
 ```javascript
 updateThing(req)
 ```
@@ -273,7 +290,7 @@ Updates an existing device.
 - `ERR_THING_NOTFOUND`: Device not found
 - `ERR_SLAVE_BLOCK`: Operation blocked on slave nodes
 
-#### List Things
+#### List things
 ```javascript
 listThings(req)
 ```
@@ -292,7 +309,7 @@ Query devices with filters and pagination.
 **Errors:**
 - Implicitly through invalid MongoDB querries.
 
-#### Forget Things
+#### Forget things
 ```javascript
 forgetThings(req)
 ```
@@ -308,9 +325,9 @@ Remove devices from the system.
 - `ERR_SLAVE_BLOCK`: Operation blocked on slave nodes
 - Implicitly through invalid MongoDB querries.
 
-### Data Access
+### Data access
 
-#### Tail Log
+#### Tail log
 ```javascript
 tailLog(req)
 ```
@@ -327,7 +344,7 @@ Retrieve time-series log data.
 
 **Returns:** Array of log entries
 
-#### Get Historical Logs
+#### Get historical logs
 ```javascript
 getHistoricalLogs(req)
 ```
@@ -342,9 +359,9 @@ Retrieve historical alerts or info changes.
 
 **Returns:** Array of historical entries
 
-### Thing Operations
+### Thing operations
 
-#### Query Thing
+#### Query thing
 ```javascript
 queryThing(req)
 ```
@@ -362,7 +379,7 @@ Execute a method on a specific device.
 - `ERR_THING_NOT_INITIALIZED`: Device controller not ready
 - `ERR_THING_METHOD_NOTFOUND`: Method doesn't exist
 
-#### Apply Things
+#### Apply things
 ```javascript
 applyThings(req)
 ```
