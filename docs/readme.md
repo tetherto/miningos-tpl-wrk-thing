@@ -1,10 +1,12 @@
 # OpenRPC specification generation
 
-This document describes how the OpenRPC specification is generated from the codebase and rendered as HTML documentation.
+This document proposes how the OpenRPC specification can generated from the codebase and rendered as HTML documentation on a user site such as a Fumadocs site.
+
+![](./static/fumadocs-outcome.png)
 
 ## Quick reference
 
-Machine-readable API documentation is available in this folder:
+The generated API documentation is available in this folder:
 
 - [`openrpc.json`](openrpc.json) - OpenRPC 1.3.2 specification (20 methods, 25 schemas)
 - [`openrpc.yaml`](openrpc.yaml) - Human-readable YAML version
@@ -16,6 +18,8 @@ npm run openrpc:generate
 npm run openrpc:validate
 ```
 
+> Note, that the workflow for who does the regeneration and commits the new docs is tbd.
+
 ## Overview
 
 The API specification is generated directly from JSDoc annotations in the source code, ensuring documentation stays in sync with the implementation.
@@ -24,6 +28,7 @@ The API specification is generated directly from JSDoc annotations in the source
 JSDoc ──► TypeScript ──► JSON Schema ──► OpenRPC ──► MDX ──► HTML
           (tsc)      (ts-json-schema)              (markdown-gen)  (Fumadocs)
 ```
+> The tooling options for JSDoc are thin, hence the proposed conversion to TypeScript.
 
 ## Generation pipeline
 
@@ -102,15 +107,7 @@ The JSON spec is converted to YAML for easier human review:
 ```bash
 npm run openrpc:yaml
 ```
-
 This generates [`docs/openrpc.yaml`](openrpc.yaml) — a single readable file where reviewers can verify:
-
-- Method names and descriptions are accurate
-- Parameter types match implementation
-- Required vs optional fields are correct
-- No sensitive information is exposed
-
-YAML is preferred over JSON for review because it's more compact and supports comments during review discussions.
 
 ## Commands
 
@@ -154,14 +151,19 @@ npm run openrpc:manifest
 | `js-yaml` | Converts JSON to YAML for human review |
 | `@open-rpc/markdown-generator` | Converts OpenRPC to MDX (via Bun) |
 
-## CI integration
+## TODOs
 
-### This repo
+Discuss alt to the verbose vanilla error listing, current @throws annotations repeat error descriptions across methods.
+Consider using union typedefs for error sets (e.g., ThingOperationErrors) to keep method annotations DRY while maintaining per-method error documentation (WARN not tested against spec validation).
 
-The GitHub workflow ([`.github/workflows/openrpc.yml`](../.github/workflows/openrpc.yml)) automatically regenerates the spec on PRs to `main`:
+### CI integration (TOTO)
 
-1. Runs `npm run openrpc:generate`
-2. Runs `npm run openrpc:validate`
+> CI needs to be discussed; tbd.
+
+The GitHub workflow ([`.github/workflows/openrpc.yml`](../.github/workflows/openrpc.yml)) shoud ideally regenerates the spec on PRs to `main`:
+
+1. Run `npm run openrpc:generate`
+2. Run `npm run openrpc:validate`
 3. Fails PR if spec is invalid
 
 This ensures the OpenRPC spec is always valid before merging.
@@ -175,6 +177,13 @@ Possible paths:
 - **Webhook trigger** — This repo notifies Fumadocs when manifest changes (e.g., via GitHub Actions workflow dispatch)
 
 Without this, Fumadocs maintainers must manually run `npm run stubs:generate` after API changes.
+
+#### Tweaking the outcome in Fumadocs
+
+As Fumadocs only ports the data from this repo per this suggested method, we may need to circle back on
+using @open-rpc/markdown-generator to convert the json to markdown to get the final look we want.
+
+The tooling is a good candidate for extending: it's MIT licensed, open source: https://github.com/open-rpc/markdown-generator, written in TypeScript, and is a relatively small codebase.
 
 ## Adding/modifying methods
 

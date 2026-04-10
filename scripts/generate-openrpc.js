@@ -1,4 +1,9 @@
 #!/usr/bin/env node
+/**
+ * Generates OpenRPC specification from JSDoc annotations in source code.
+ * Extracts types via TypeScript, converts to JSON Schema, assembles OpenRPC doc.
+ * Run: npm run openrpc:generate
+ */
 const { execSync } = require('child_process')
 const fs = require('fs')
 const path = require('path')

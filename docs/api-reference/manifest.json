@@ -8,102 +8,102 @@
     {
       "file": "getRack.mdx",
       "title": "getRack",
-      "description": "Parameters for getRack RPC method"
+      "description": "Parameters for `getRack` RPC method"
     },
     {
       "file": "queryThing.mdx",
       "title": "queryThing",
-      "description": "Parameters for queryThing RPC method"
+      "description": "Parameters for `queryThing` RPC method"
     },
     {
       "file": "listThings.mdx",
       "title": "listThings",
-      "description": "Parameters for listThings RPC method"
+      "description": "Parameters for `listThings` RPC method"
     },
     {
       "file": "getThingsCount.mdx",
       "title": "getThingsCount",
-      "description": "Parameters for getThingsCount RPC method"
+      "description": "Parameters for `getThingsCount` RPC method"
     },
     {
       "file": "registerThing.mdx",
       "title": "registerThing",
-      "description": "Parameters for registerThing RPC method"
+      "description": "Parameters for `registerThing` RPC method"
     },
     {
       "file": "updateThing.mdx",
       "title": "updateThing",
-      "description": "Parameters for updateThing RPC method"
+      "description": "Parameters for `updateThing` RPC method"
     },
     {
       "file": "saveThingComment.mdx",
       "title": "saveThingComment",
-      "description": "Parameters for saveThingComment RPC method"
+      "description": "Parameters for `saveThingComment` RPC method"
     },
     {
       "file": "editThingComment.mdx",
       "title": "editThingComment",
-      "description": "Parameters for editThingComment RPC method"
+      "description": "Parameters for `editThingComment` RPC method"
     },
     {
       "file": "deleteThingComment.mdx",
       "title": "deleteThingComment",
-      "description": "Parameters for deleteThingComment RPC method"
+      "description": "Parameters for `deleteThingComment` RPC method"
     },
     {
       "file": "forgetThings.mdx",
       "title": "forgetThings",
-      "description": "Parameters for forgetThings RPC method"
+      "description": "Parameters for `forgetThings` RPC method"
     },
     {
       "file": "applyThings.mdx",
       "title": "applyThings",
-      "description": "Parameters for applyThings RPC method"
+      "description": "Parameters for `applyThings` RPC method"
     },
     {
       "file": "tailLog.mdx",
       "title": "tailLog",
-      "description": "Parameters for tailLog RPC method"
+      "description": "Parameters for `tailLog` RPC method"
     },
     {
       "file": "getHistoricalLogs.mdx",
       "title": "getHistoricalLogs",
-      "description": "Parameters for getHistoricalLogs RPC method"
+      "description": "Parameters for `getHistoricalLogs` RPC method"
     },
     {
       "file": "getReplicaConf.mdx",
       "title": "getReplicaConf",
-      "description": "Parameters for getReplicaConf RPC method"
+      "description": "Parameters for `getReplicaConf` RPC method"
     },
     {
       "file": "rackReboot.mdx",
       "title": "rackReboot",
-      "description": "Parameters for rackReboot RPC method"
+      "description": "Parameters for `rackReboot` RPC method"
     },
     {
       "file": "getWrkExtData.mdx",
       "title": "getWrkExtData",
-      "description": "Parameters for getWrkExtData RPC method"
+      "description": "Parameters for `getWrkExtData` RPC method"
     },
     {
       "file": "getWrkConf.mdx",
       "title": "getWrkConf",
-      "description": "Parameters for getWrkConf RPC method"
+      "description": "Parameters for `getWrkConf` RPC method"
     },
     {
       "file": "getThingConf.mdx",
       "title": "getThingConf",
-      "description": "Parameters for getThingConf RPC method"
+      "description": "Parameters for `getThingConf` RPC method"
     },
     {
       "file": "getWrkSettings.mdx",
       "title": "getWrkSettings",
-      "description": "Parameters for getWrkSettings RPC method"
+      "description": "Parameters for `getWrkSettings` RPC method"
     },
     {
       "file": "saveWrkSettings.mdx",
       "title": "saveWrkSettings",
-      "description": "Parameters for saveWrkSettings RPC method"
+      "description": "Parameters for `saveWrkSettings` RPC method"
     }
   ]
 }

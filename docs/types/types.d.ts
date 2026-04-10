@@ -174,7 +174,7 @@ export type SortCriteria = {
     [x: string]: 1 | -1;
 };
 /**
- * Parameters for registerThing RPC method
+ * Parameters for `registerThing` RPC method
  */
 export type RegisterThingParams = {
     /**
@@ -207,7 +207,7 @@ export type RegisterThingParams = {
     user?: string;
 };
 /**
- * Parameters for updateThing RPC method
+ * Parameters for `updateThing` RPC method
  */
 export type UpdateThingParams = {
     /**
@@ -244,7 +244,7 @@ export type UpdateThingParams = {
     actionId?: string;
 };
 /**
- * Parameters for listThings RPC method
+ * Parameters for `listThings` RPC method
  */
 export type ListThingsParams = {
     /**
@@ -273,7 +273,7 @@ export type ListThingsParams = {
     status?: boolean;
 };
 /**
- * Parameters for getThingsCount RPC method
+ * Parameters for `getThingsCount` RPC method
  */
 export type GetThingsCountParams = {
     /**
@@ -282,7 +282,7 @@ export type GetThingsCountParams = {
     query?: MongoQuery;
 };
 /**
- * Parameters for forgetThings RPC method
+ * Parameters for `forgetThings` RPC method
  */
 export type ForgetThingsParams = {
     /**
@@ -295,7 +295,7 @@ export type ForgetThingsParams = {
     all?: boolean;
 };
 /**
- * Parameters for queryThing RPC method
+ * Parameters for `queryThing` RPC method
  */
 export type QueryThingParams = {
     /**
@@ -312,7 +312,7 @@ export type QueryThingParams = {
     params: any[];
 };
 /**
- * Parameters for applyThings RPC method
+ * Parameters for `applyThings` RPC method
  */
 export type ApplyThingsParams = {
     /**
@@ -345,7 +345,7 @@ export type ApplyThingsParams = {
     limit?: number;
 };
 /**
- * Parameters for saveThingComment RPC method
+ * Parameters for `saveThingComment` RPC method
  */
 export type SaveThingCommentParams = {
     /**
@@ -366,7 +366,7 @@ export type SaveThingCommentParams = {
     pos?: string;
 };
 /**
- * Parameters for editThingComment RPC method
+ * Parameters for `editThingComment` RPC method
  */
 export type EditThingCommentParams = {
     /**
@@ -391,7 +391,7 @@ export type EditThingCommentParams = {
     user: string;
 };
 /**
- * Parameters for deleteThingComment RPC method
+ * Parameters for `deleteThingComment` RPC method
  */
 export type DeleteThingCommentParams = {
     /**
@@ -412,7 +412,7 @@ export type DeleteThingCommentParams = {
     user: string;
 };
 /**
- * Parameters for tailLog RPC method
+ * Parameters for `tailLog` RPC method
  */
 export type TailLogParams = {
     /**
@@ -453,7 +453,7 @@ export type TailLogParams = {
     shouldCalculateAvg?: boolean;
 };
 /**
- * Parameters for getHistoricalLogs RPC method
+ * Parameters for `getHistoricalLogs` RPC method
  */
 export type GetHistoricalLogsParams = {
     /**
@@ -482,23 +482,23 @@ export type GetHistoricalLogsParams = {
     fields?: FieldProjection;
 };
 /**
- * Parameters for getReplicaConf RPC method
+ * Parameters for `getReplicaConf` RPC method
  */
 export type GetReplicaConfParams = any;
 /**
- * Parameters for getRack RPC method
+ * Parameters for `getRack` RPC method
  */
 export type GetRackParams = any;
 /**
- * Parameters for rackReboot RPC method
+ * Parameters for `rackReboot` RPC method
  */
 export type RackRebootParams = any;
 /**
- * Parameters for getWrkExtData RPC method
+ * Parameters for `getWrkExtData` RPC method
  */
 export type GetWrkExtDataParams = any;
 /**
- * Parameters for getWrkConf RPC method
+ * Parameters for `getWrkConf` RPC method
  */
 export type GetWrkConfParams = {
     /**
@@ -507,7 +507,7 @@ export type GetWrkConfParams = {
     fields?: FieldProjection;
 };
 /**
- * Parameters for getThingConf RPC method
+ * Parameters for `getThingConf` RPC method
  */
 export type GetThingConfParams = {
     /**
@@ -516,11 +516,11 @@ export type GetThingConfParams = {
     requestType: "nextAvailableCode";
 };
 /**
- * Parameters for getWrkSettings RPC method
+ * Parameters for `getWrkSettings` RPC method
  */
 export type GetWrkSettingsParams = any;
 /**
- * Parameters for saveWrkSettings RPC method
+ * Parameters for `saveWrkSettings` RPC method
  */
 export type SaveWrkSettingsParams = {
     /**

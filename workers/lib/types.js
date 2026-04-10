@@ -115,7 +115,7 @@
 // =============================================================================
 
 /**
- * Parameters for registerThing RPC method
+ * Parameters for `registerThing` RPC method
  * @typedef {Object} RegisterThingParams
  * @property {string} [id] - Device ID (auto-generated UUID if not provided)
  * @property {string} [code] - Device code (auto-generated if not provided, must match pattern *-NNNN)
@@ -127,7 +127,7 @@
  */
 
 /**
- * Parameters for updateThing RPC method
+ * Parameters for `updateThing` RPC method
  * @typedef {Object} UpdateThingParams
  * @property {string} id - Device ID (required)
  * @property {ThingOpts} [opts] - Updated connection options
@@ -140,7 +140,7 @@
  */
 
 /**
- * Parameters for listThings RPC method
+ * Parameters for `listThings` RPC method
  * @typedef {Object} ListThingsParams
  * @property {MongoQuery} [query] - MongoDB-style query filter
  * @property {FieldProjection} [fields] - Field projection
@@ -151,20 +151,20 @@
  */
 
 /**
- * Parameters for getThingsCount RPC method
+ * Parameters for `getThingsCount` RPC method
  * @typedef {Object} GetThingsCountParams
  * @property {MongoQuery} [query] - MongoDB-style query filter
  */
 
 /**
- * Parameters for forgetThings RPC method
+ * Parameters for `forgetThings` RPC method
  * @typedef {Object} ForgetThingsParams
  * @property {MongoQuery} [query] - Query to select things to remove
  * @property {boolean} [all] - If true, remove all things
  */
 
 /**
- * Parameters for queryThing RPC method
+ * Parameters for `queryThing` RPC method
  * @typedef {Object} QueryThingParams
  * @property {string} id - Thing ID
  * @property {string} method - Method name to execute on thing controller
@@ -172,7 +172,7 @@
  */
 
 /**
- * Parameters for applyThings RPC method
+ * Parameters for `applyThings` RPC method
  * @typedef {Object} ApplyThingsParams
  * @property {string} method - Method to execute on each thing
  * @property {MongoQuery} [query] - Query to select things (default: all)
@@ -184,7 +184,7 @@
  */
 
 /**
- * Parameters for saveThingComment RPC method
+ * Parameters for `saveThingComment` RPC method
  * @typedef {Object} SaveThingCommentParams
  * @property {string} thingId - Thing ID to add comment to
  * @property {string} comment - Comment text
@@ -193,7 +193,7 @@
  */
 
 /**
- * Parameters for editThingComment RPC method
+ * Parameters for `editThingComment` RPC method
  * @typedef {Object} EditThingCommentParams
  * @property {string} thingId - Thing ID
  * @property {string} [id] - Comment ID (preferred)
@@ -203,7 +203,7 @@
  */
 
 /**
- * Parameters for deleteThingComment RPC method
+ * Parameters for `deleteThingComment` RPC method
  * @typedef {Object} DeleteThingCommentParams
  * @property {string} thingId - Thing ID
  * @property {string} [id] - Comment ID (preferred)
@@ -212,7 +212,7 @@
  */
 
 /**
- * Parameters for tailLog RPC method
+ * Parameters for `tailLog` RPC method
  * @typedef {Object} TailLogParams
  * @property {string} key - Log type identifier (e.g., 'thing-5m', 'stat-H')
  * @property {string} tag - Thing tag or identifier
@@ -226,7 +226,7 @@
  */
 
 /**
- * Parameters for getHistoricalLogs RPC method
+ * Parameters for `getHistoricalLogs` RPC method
  * @typedef {Object} GetHistoricalLogsParams
  * @property {'alerts'|'info'} logType - Type of historical logs to retrieve
  * @property {number} [offset=0] - Starting offset
@@ -237,44 +237,44 @@
  */
 
 /**
- * Parameters for getReplicaConf RPC method
+ * Parameters for `getReplicaConf` RPC method
  * @typedef {Object} GetReplicaConfParams
  */
 
 /**
- * Parameters for getRack RPC method
+ * Parameters for `getRack` RPC method
  * @typedef {Object} GetRackParams
  */
 
 /**
- * Parameters for rackReboot RPC method
+ * Parameters for `rackReboot` RPC method
  * @typedef {Object} RackRebootParams
  */
 
 /**
- * Parameters for getWrkExtData RPC method
+ * Parameters for `getWrkExtData` RPC method
  * @typedef {Object} GetWrkExtDataParams
  */
 
 /**
- * Parameters for getWrkConf RPC method
+ * Parameters for `getWrkConf` RPC method
  * @typedef {Object} GetWrkConfParams
  * @property {FieldProjection} [fields] - Field projection for config
  */
 
 /**
- * Parameters for getThingConf RPC method
+ * Parameters for `getThingConf` RPC method
  * @typedef {Object} GetThingConfParams
  * @property {'nextAvailableCode'} requestType - Type of configuration to retrieve
  */
 
 /**
- * Parameters for getWrkSettings RPC method
+ * Parameters for `getWrkSettings` RPC method
  * @typedef {Object} GetWrkSettingsParams
  */
 
 /**
- * Parameters for saveWrkSettings RPC method
+ * Parameters for `saveWrkSettings` RPC method
  * @typedef {Object} SaveWrkSettingsParams
  * @property {Object} entries - Settings entries to save
  */

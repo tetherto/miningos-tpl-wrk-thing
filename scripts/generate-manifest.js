@@ -1,4 +1,9 @@
 'use strict'
+/**
+ * Generates manifest.json for Fumadocs stub generation.
+ * Lists all RPC methods with metadata so the docs site can create stub pages.
+ * Run: npm run openrpc:manifest
+ */
 
 const fs = require('fs')
 const path = require('path')

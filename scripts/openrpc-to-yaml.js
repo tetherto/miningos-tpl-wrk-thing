@@ -1,4 +1,9 @@
 'use strict'
+/**
+ * Converts openrpc.json to openrpc.yaml for human review.
+ * YAML is easier to read and supports comments during review discussions.
+ * Run: npm run openrpc:yaml
+ */
 
 const fs = require('fs')
 const path = require('path')

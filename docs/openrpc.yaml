@@ -1,4 +1,4 @@
-openrpc: 1.3.2
+openrpc: 1.4.1
 info:
   title: MiningOS Thing Worker API
   version: 1.0.0
@@ -169,10 +169,10 @@ methods:
 components:
   schemas:
     GetRackParams:
-      description: Parameters for getRack RPC method
+      description: Parameters for `getRack` RPC method
     QueryThingParams:
       additionalProperties: false
-      description: Parameters for queryThing RPC method
+      description: Parameters for `queryThing` RPC method
       properties:
         id:
           description: '- Thing ID'
@@ -209,7 +209,7 @@ components:
       type: object
     ListThingsParams:
       additionalProperties: false
-      description: Parameters for listThings RPC method
+      description: Parameters for `listThings` RPC method
       properties:
         fields:
           $ref: '#/components/schemas/FieldProjection'
@@ -232,7 +232,7 @@ components:
       type: object
     GetThingsCountParams:
       additionalProperties: false
-      description: Parameters for getThingsCount RPC method
+      description: Parameters for `getThingsCount` RPC method
       properties:
         query:
           $ref: '#/components/schemas/MongoQuery'
@@ -274,7 +274,7 @@ components:
       type: object
     RegisterThingParams:
       additionalProperties: false
-      description: Parameters for registerThing RPC method
+      description: Parameters for `registerThing` RPC method
       properties:
         code:
           description: '- Device code (auto-generated if not provided, must match pattern *-NNNN)'
@@ -304,7 +304,7 @@ components:
       type: object
     UpdateThingParams:
       additionalProperties: false
-      description: Parameters for updateThing RPC method
+      description: Parameters for `updateThing` RPC method
       properties:
         actionId:
           description: '- Action identifier for tracking'
@@ -337,7 +337,7 @@ components:
       type: object
     SaveThingCommentParams:
       additionalProperties: false
-      description: Parameters for saveThingComment RPC method
+      description: Parameters for `saveThingComment` RPC method
       properties:
         comment:
           description: '- Comment text'
@@ -358,7 +358,7 @@ components:
       type: object
     EditThingCommentParams:
       additionalProperties: false
-      description: Parameters for editThingComment RPC method
+      description: Parameters for `editThingComment` RPC method
       properties:
         comment:
           description: '- New comment text'
@@ -382,7 +382,7 @@ components:
       type: object
     DeleteThingCommentParams:
       additionalProperties: false
-      description: Parameters for deleteThingComment RPC method
+      description: Parameters for `deleteThingComment` RPC method
       properties:
         id:
           description: '- Comment ID (preferred)'
@@ -402,7 +402,7 @@ components:
       type: object
     ForgetThingsParams:
       additionalProperties: false
-      description: Parameters for forgetThings RPC method
+      description: Parameters for `forgetThings` RPC method
       properties:
         all:
           description: '- If true, remove all things'
@@ -413,7 +413,7 @@ components:
       type: object
     ApplyThingsParams:
       additionalProperties: false
-      description: Parameters for applyThings RPC method
+      description: Parameters for `applyThings` RPC method
       properties:
         fields:
           $ref: '#/components/schemas/FieldProjection'
@@ -442,7 +442,7 @@ components:
       type: object
     TailLogParams:
       additionalProperties: false
-      description: Parameters for tailLog RPC method
+      description: Parameters for `tailLog` RPC method
       properties:
         end:
           description: '- End timestamp for time range'
@@ -477,7 +477,7 @@ components:
       type: object
     GetHistoricalLogsParams:
       additionalProperties: false
-      description: Parameters for getHistoricalLogs RPC method
+      description: Parameters for `getHistoricalLogs` RPC method
       properties:
         end:
           description: '- End timestamp'
@@ -504,14 +504,14 @@ components:
         - logType
       type: object
     GetReplicaConfParams:
-      description: Parameters for getReplicaConf RPC method
+      description: Parameters for `getReplicaConf` RPC method
     RackRebootParams:
-      description: Parameters for rackReboot RPC method
+      description: Parameters for `rackReboot` RPC method
     GetWrkExtDataParams:
-      description: Parameters for getWrkExtData RPC method
+      description: Parameters for `getWrkExtData` RPC method
     GetWrkConfParams:
       additionalProperties: false
-      description: Parameters for getWrkConf RPC method
+      description: Parameters for `getWrkConf` RPC method
       properties:
         fields:
           $ref: '#/components/schemas/FieldProjection'
@@ -519,7 +519,7 @@ components:
       type: object
     GetThingConfParams:
       additionalProperties: false
-      description: Parameters for getThingConf RPC method
+      description: Parameters for `getThingConf` RPC method
       properties:
         requestType:
           const: nextAvailableCode
@@ -529,10 +529,10 @@ components:
         - requestType
       type: object
     GetWrkSettingsParams:
-      description: Parameters for getWrkSettings RPC method
+      description: Parameters for `getWrkSettings` RPC method
     SaveWrkSettingsParams:
       additionalProperties: false
-      description: Parameters for saveWrkSettings RPC method
+      description: Parameters for `saveWrkSettings` RPC method
       properties:
         entries:
           description: '- Settings entries to save'

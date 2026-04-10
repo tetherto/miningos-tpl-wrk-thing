@@ -1,4 +1,9 @@
 #!/usr/bin/env node
+/**
+ * Validates the generated OpenRPC spec against the OpenRPC meta-schema.
+ * Catches structural errors, missing fields, and schema violations.
+ * Run: npm run openrpc:validate
+ */
 const { parseOpenRPCDocument } = require('@open-rpc/schema-utils-js')
 const fs = require('fs')
 const path = require('path')
