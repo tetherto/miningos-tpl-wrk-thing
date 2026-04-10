@@ -1,37 +1,20 @@
 # miningos-tpl-wrk-thing
 
-## Table of contents
+## Table of Contents
 
 1. [Overview](#overview)
 2. [Architecture](#architecture)
-    1. [Detailed component architecture](#detailed-component-architecture)
-    2. [Object model](#object-model)
-    3. [Worker types](#worker-types)
-3. [Core concepts](#core-concepts)
+    1. [Detailed Component Architecture](#detailed-component-architecture)
+    2. [Object Model](#object-model)
+    3. [Worker Types](#worker-types)
+3. [Core Concepts](#core-concepts)
     1. [Thing](#thing)
-    2. [Tag system](#tag-system)
+    2. [Tag System](#tag-system)
     3. [Snapshot](#snapshot)
-4. [API reference](#api-reference)
-    1. [Thing management](#thing-management)
-    2. [Thing operation](#thing-operation)
-    3. [Data access](#data-access)
-5. [OpenRPC specification](#openrpc-specification)
-
-## OpenRPC specification
-
-Machine-readable API documentation is available in the `docs/` folder:
-
-- `docs/openrpc.json` - OpenRPC 1.4.1 specification (20 methods, 25 schemas)
-- `docs/readme.md` - Documentation on how the spec is generated
-
-To regenerate after code changes:
-
-```bash
-npm run openrpc:generate
-npm run openrpc:validate
-```
-
-See [docs/readme.md](docs/readme.md) for details on the generation pipeline.
+4. [API Reference](#api-reference)
+    1. [Thing Management](#thing-management)
+    2. [Thing Operation](#thing-operation)
+    3. [Data Access](#data-access)
 
 ## Overview
 
@@ -39,7 +22,7 @@ The WrkProcVar class provides a comprehensive base implementation for managing a
 
 ## Architecture
 
-### Detailed component architecture
+### Detailed Component Architecture
 
 ```mermaid
 graph TB
@@ -127,7 +110,7 @@ graph TB
 
 This comprehensive view reveals the complete system architecture including internal components and external integrations. The Facilities Layer provides pluggable services that workers initialize during startup via setInitFacs, including interval-based tasks (snapshot collection, log rotation, thing setup, and replica configuration refresh), scheduled statistics generation, network services with RPC/DHT capabilities, and distributed storage management. The dual-storage architecture separates volatile in-memory caches (containing things, logs, and replica configuration) from persistent Hyperbee databases, with time-series logs stored separately for efficient historical data access. External connections are defined through abstract methods that subclasses must implement for specific device types. The replication system leverages Hypercore's peer-to-peer protocol with replica discovery, enabling automatic master-slave synchronization where masters have full read/write capabilities while slaves operate in read-only mode. The Hook System provides extension points for subclasses to customize thing lifecycle operations.
 
-### Object model
+### Object Model
 
 The following is a fragment of [MiningOS object model](https://docs.mos.tether.io/) that contains the abstract class representing "thing" (highlighted in blue). The rounded nodes reprsent abstract classes and the one square node represents a concrete class:
 
@@ -172,7 +155,7 @@ flowchart BT
     style miningos-tlp-wrk-thing fill:#005,stroke-width:4px
 ```
 
-### Worker types
+### Worker Types
 The system implements a sophisticated multi-level inheritance hierarchy:
 
 #### Inheritance levels
@@ -227,7 +210,7 @@ Available templates:
 
 This architecture allows maximum code reuse while supporting diverse hardware with minimal implementation effort.
 
-## Core concepts
+## Core Concepts
 
 ### Things
 
@@ -241,9 +224,9 @@ Periodic data collection from devices:
 - Operational status --- offline status is flagged by Thing class;
 - Errors (timeouts, connection failures, device errors);
 
-## API reference
+## API Reference
 
-### Thing management
+### Thing Management
 
 #### Register thing
 ```javascript
@@ -325,7 +308,7 @@ Remove devices from the system.
 - `ERR_SLAVE_BLOCK`: Operation blocked on slave nodes
 - Implicitly through invalid MongoDB querries.
 
-### Data access
+### Data Access
 
 #### Tail log
 ```javascript
@@ -359,7 +342,7 @@ Retrieve historical alerts or info changes.
 
 **Returns:** Array of historical entries
 
-### Thing operations
+### Thing Operations
 
 #### Query thing
 ```javascript

@@ -1,5 +1,5 @@
 {
-  "openrpc": "1.4.1",
+  "openrpc": "1.3.2",
   "info": {
     "title": "MiningOS Thing Worker API",
     "version": "1.0.0",
