@@ -15,14 +15,14 @@
     1. [Thing Management](#thing-management)
     2. [Thing Operation](#thing-operation)
     3. [Data Access](#data-access)
-
+       
 ## Overview
 
 The WrkProcVar class provides a comprehensive base implementation for managing abstract entities (“things”) in MiningOS. Originally designed for physical device management, the framework has proven flexible enough to handle various data sources and services critical to mining operations.
 
 ## Architecture
 
-### Detailed Component Architecture
+### Detailed Component Architecture:
 
 ```mermaid
 graph TB
@@ -158,7 +158,7 @@ flowchart BT
 ### Worker Types
 The system implements a sophisticated multi-level inheritance hierarchy:
 
-#### Inheritance levels
+#### Inheritance Levels
 ```
 Level 1: bfx-wrk-base (Foundation)
     ↓
@@ -171,7 +171,7 @@ Level 4: Device Category Templates
 Level 5: Brand/Model Specific Implementations
 ```
 
-#### Implementation pattern
+#### Implementation Pattern
 Each level provides increasing specialization:
 - **Level 1**: Provides worker infrastructure (lifecycle, facilities, configuration)
 - **Level 2**: Provides worker infrastructure (lifecycle, facilities, configuration)
@@ -228,7 +228,7 @@ Periodic data collection from devices:
 
 ### Thing Management
 
-#### Register thing
+#### Register Thing
 ```javascript
 registerThing(req)
 ```
@@ -251,7 +251,7 @@ Creates a new device in the system.
 - `ERR_THING_WITH_CODE_ALREADY_EXISTS`: Duplicate code
 - `ERR_THING_CODE_INVALID`: Malformed string for code
 
-#### Update thing
+#### Update Thing
 ```javascript
 updateThing(req)
 ```
@@ -273,7 +273,7 @@ Updates an existing device.
 - `ERR_THING_NOTFOUND`: Device not found
 - `ERR_SLAVE_BLOCK`: Operation blocked on slave nodes
 
-#### List things
+#### List Things
 ```javascript
 listThings(req)
 ```
@@ -292,7 +292,7 @@ Query devices with filters and pagination.
 **Errors:**
 - Implicitly through invalid MongoDB querries.
 
-#### Forget things
+#### Forget Things
 ```javascript
 forgetThings(req)
 ```
@@ -310,7 +310,7 @@ Remove devices from the system.
 
 ### Data Access
 
-#### Tail log
+#### Tail Log
 ```javascript
 tailLog(req)
 ```
@@ -327,7 +327,7 @@ Retrieve time-series log data.
 
 **Returns:** Array of log entries
 
-#### Get historical logs
+#### Get Historical Logs
 ```javascript
 getHistoricalLogs(req)
 ```
@@ -344,7 +344,7 @@ Retrieve historical alerts or info changes.
 
 ### Thing Operations
 
-#### Query thing
+#### Query Thing
 ```javascript
 queryThing(req)
 ```
@@ -362,7 +362,7 @@ Execute a method on a specific device.
 - `ERR_THING_NOT_INITIALIZED`: Device controller not ready
 - `ERR_THING_METHOD_NOTFOUND`: Method doesn't exist
 
-#### Apply things
+#### Apply Things
 ```javascript
 applyThings(req)
 ```
