@@ -1,24 +1,35 @@
+# Validates OpenRPC specification on pull requests
+# Fails if generated files are out of sync with source code
+#
+# TODO: Add workflow_dispatch trigger for Fumadocs webhook integration
+# See docs/readme.md "Fumadocs sync (TODO)" section
+
 name: OpenRPC
 on:
-  push:
+  pull_request:
     branches: [main]
+
 jobs:
-  generate:
+  validate:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+
       - run: npm ci
+
+      # Regenerate all artifacts
       - run: npm run openrpc:generate
       - run: npm run openrpc:validate
-      - name: Commit updated spec
+      - run: npm run openrpc:yaml
+      - run: npm run openrpc:manifest
+
+      # Fail if generated files differ from committed
+      # (ensures developers ran generation locally before pushing)
+      - name: Check for uncommitted changes
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/openrpc.json docs/types/
-          git diff --staged --quiet || git commit -m "chore: regenerate openrpc.json"
-          git push
+          git diff --exit-code docs/openrpc.json docs/openrpc.yaml docs/api-reference/manifest.json || \
+            (echo "Generated files are out of sync. Run 'npm run openrpc:generate && npm run openrpc:yaml && npm run openrpc:manifest' locally." && exit 1)
