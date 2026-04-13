@@ -30,6 +30,18 @@ const RPC_METHODS = [
   'saveWrkSettings'
 ]
 
+const AUDIT_METHODS = new Set([
+  'registerThing',
+  'updateThing',
+  'forgetThings',
+  'applyThings',
+  'saveThingComment',
+  'editThingComment',
+  'deleteThingComment',
+  'saveWrkSettings',
+  'rackReboot'
+])
+
 const TIME_PERIODS_MS = {
   H: 60 * 60 * 1000,
   D: 24 * 60 * 60 * 1000,
@@ -41,6 +53,7 @@ module.exports = {
   STAT_RTD,
   OPTIONAL_CONFIGS,
   RPC_METHODS,
+  AUDIT_METHODS,
   MAIN_DB,
   TIME_PERIODS_MS
 }

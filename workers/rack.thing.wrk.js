@@ -16,7 +16,7 @@ const lWrkFunReplica = require('./lib/wrk-fun-replica')
 const lWrkFunSettings = require('./lib/wrk-fun-settings')
 const { exit } = require('node:process')
 const { getLogsCountForTimeRange, getLogMaxHeight, getJsonChanges, aggregateLogs, getThingSorter } = require('./lib/utils')
-const { STAT_RTD, OPTIONAL_CONFIGS, RPC_METHODS, MAIN_DB } = require('./lib/constants')
+const { STAT_RTD, OPTIONAL_CONFIGS, RPC_METHODS, AUDIT_METHODS, MAIN_DB } = require('./lib/constants')
 
 class WrkProcVar extends TetherWrkBase {
   constructor (conf, ctx) {
@@ -111,6 +111,70 @@ class WrkProcVar extends TetherWrkBase {
 
   debug (data) {
     debug(`[THING/${this.rackId}]`, data)
+  }
+
+  loggerMixin () {
+    return { rackId: this.rackId }
+  }
+
+  _auditLog (action, req, opts = {}) {
+    try {
+      if (!this.logger) return
+
+      const { outcome = 'success', error = null, detail = {} } = opts
+      const level = outcome === 'success' ? 'info' : 'warn'
+      this.logger[level]({
+        audit: true,
+        action,
+        outcome,
+        user: req.user || null,
+        thingId: req.id || req.thingId || null,
+        detail,
+        ...(error ? { error } : {})
+      }, `audit: ${action} ${outcome}`)
+    } catch (e) {
+      this.debugError('ERR_AUDIT_LOG', e)
+    }
+  }
+
+  _getAuditDetail (method, req, result) {
+    switch (method) {
+      case 'registerThing':
+        return { thingId: req.id, code: req.code }
+      case 'updateThing':
+        return { forceOverwrite: !!req.forceOverwrite, actionId: req.actionId }
+      case 'saveThingComment':
+        return { thingId: req.thingId }
+      case 'editThingComment':
+      case 'deleteThingComment':
+        return { thingId: req.thingId, commentId: req.id || req.ts }
+      case 'forgetThings':
+        return { query: req.query, all: !!req.all }
+      case 'applyThings':
+        return { method: req.method, query: req.query, affected: result }
+      case 'saveWrkSettings':
+        return { entryKeys: req.entries ? Object.keys(req.entries) : [] }
+      default:
+        return {}
+    }
+  }
+
+  async handleRpcReply (method, req) {
+    let data
+    try {
+      data = this.net_r0.parseInputJSON(req)
+    } catch (e) {
+      this._auditLog(method, {}, { outcome: 'failure', error: e.message })
+      return this.net_r0.toOutJSON(`[HRPC_ERR]=${e.message}`)
+    }
+    try {
+      const res = await this[method](data)
+      this._auditLog(method, data, { detail: this._getAuditDetail(method, data, res) })
+      return this.net_r0.toOutJSON(res)
+    } catch (e) {
+      this._auditLog(method, data, { outcome: 'failure', error: e.message })
+      return this.net_r0.toOutJSON(`[HRPC_ERR]=${e.message}`)
+    }
   }
 
   _addWhitelistedActions (actions) {
@@ -974,9 +1038,9 @@ class WrkProcVar extends TetherWrkBase {
       }
     )
 
-    return res.reduce((acc, e) => {
-      return acc + e
-    }, 0)
+    const total = res.reduce((acc, e) => acc + e, 0)
+
+    return total
   }
 
   async _queryThingHook () {
@@ -1394,6 +1458,9 @@ class WrkProcVar extends TetherWrkBase {
 
         RPC_METHODS.forEach(method => {
           rpcServer.respond(method, async (req) => {
+            if (AUDIT_METHODS.has(method)) {
+              return this.handleRpcReply(method, req)
+            }
             return await this.net_r0.handleReply(method, req)
           })
         })
