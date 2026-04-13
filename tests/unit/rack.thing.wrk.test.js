@@ -1052,3 +1052,171 @@ test('WrkProcVar: _storeInfoChangesToDb appends history', async t => {
   )
   t.is(putCount, 1)
 })
+
+// --- Audit logging tests ---
+
+function mockLogger () {
+  const calls = { info: [], warn: [] }
+  return {
+    calls,
+    info: (obj, msg) => calls.info.push({ obj, msg }),
+    warn: (obj, msg) => calls.warn.push({ obj, msg })
+  }
+}
+
+test('WrkProcVar: loggerMixin returns rackId', async t => {
+  const w = protoWorker()
+  const mixin = w.loggerMixin()
+  t.alike(mixin, { rackId: 'thing-test-rack' })
+})
+
+test('WrkProcVar: _auditLog skips when logger is not available', async t => {
+  const w = protoWorker()
+  w._auditLog('registerThing', {})
+  t.pass()
+})
+
+test('WrkProcVar: _auditLog emits success audit event', async t => {
+  const logger = mockLogger()
+  const w = protoWorker()
+  w.logger = logger
+
+  w._auditLog('registerThing', { user: 'admin@test.com', id: 't1' }, {
+    detail: { thingId: 't1', code: 'MINER-0001' }
+  })
+
+  t.is(logger.calls.info.length, 1)
+  const entry = logger.calls.info[0]
+  t.is(entry.obj.audit, true)
+  t.is(entry.obj.action, 'registerThing')
+  t.is(entry.obj.outcome, 'success')
+  t.is(entry.obj.user, 'admin@test.com')
+  t.is(entry.obj.thingId, 't1')
+  t.alike(entry.obj.detail, { thingId: 't1', code: 'MINER-0001' })
+  t.is(entry.msg, 'audit: registerThing success')
+})
+
+test('WrkProcVar: _auditLog emits failure audit event', async t => {
+  const logger = mockLogger()
+  const w = protoWorker()
+  w.logger = logger
+
+  w._auditLog('forgetThings', { user: 'u@test.com' }, {
+    outcome: 'failure',
+    error: 'ERR_SLAVE_BLOCK'
+  })
+
+  t.is(logger.calls.warn.length, 1)
+  const entry = logger.calls.warn[0]
+  t.is(entry.obj.audit, true)
+  t.is(entry.obj.action, 'forgetThings')
+  t.is(entry.obj.outcome, 'failure')
+  t.is(entry.obj.error, 'ERR_SLAVE_BLOCK')
+  t.is(entry.msg, 'audit: forgetThings failure')
+})
+
+test('WrkProcVar: _auditLog extracts thingId from req.thingId', async t => {
+  const logger = mockLogger()
+  const w = protoWorker()
+  w.logger = logger
+
+  w._auditLog('saveThingComment', { thingId: 'device-42', user: 'u' }, {
+    detail: { thingId: 'device-42' }
+  })
+
+  t.is(logger.calls.info[0].obj.thingId, 'device-42')
+})
+
+test('WrkProcVar: _auditLog defaults user and thingId to null', async t => {
+  const logger = mockLogger()
+  const w = protoWorker()
+  w.logger = logger
+
+  w._auditLog('rackReboot', {}, { detail: {} })
+
+  const entry = logger.calls.info[0]
+  t.is(entry.obj.user, null)
+  t.is(entry.obj.thingId, null)
+})
+
+test('WrkProcVar: registerThing emits audit log', async t => {
+  const logger = mockLogger()
+  const w = protoWorker()
+  w.logger = logger
+  w.ctx.slave = false
+  w.mem.things = {}
+  w._validateRegisterThing = () => {}
+  w._registerAndStoreThing = async (data) => ({
+    id: data.id || 'new-id',
+    code: 'THING-0001'
+  })
+  w.setupThing = async () => {}
+
+  await w.registerThing({ user: 'admin@test.com', info: {} })
+
+  t.is(logger.calls.info.length, 1)
+  t.is(logger.calls.info[0].obj.action, 'registerThing')
+  t.is(logger.calls.info[0].obj.detail.code, 'THING-0001')
+})
+
+test('WrkProcVar: forgetThings emits audit log', async t => {
+  const logger = mockLogger()
+  const w = protoWorker()
+  w.logger = logger
+  w.ctx.slave = false
+  w.mem.things = { t1: { id: 't1' } }
+  w.things = { del: async () => {} }
+  w.forgetThingHook0 = async () => {}
+
+  await w.forgetThings({ all: true })
+
+  t.is(logger.calls.info.length, 1)
+  t.is(logger.calls.info[0].obj.action, 'forgetThings')
+  t.is(logger.calls.info[0].obj.detail.all, true)
+  t.is(logger.calls.info[0].obj.detail.count, 1)
+})
+
+test('WrkProcVar: applyThings emits audit log', async t => {
+  const logger = mockLogger()
+  const w = protoWorker()
+  w.logger = logger
+  w._handler = WrkProcVar.prototype._createApplyThingsProxy.call(w)
+  w.mem.things = {
+    t1: { id: 't1', ctrl: { ping: async () => 7 } }
+  }
+
+  await w.applyThings({ method: 'ping', params: [] })
+
+  t.is(logger.calls.info.length, 1)
+  t.is(logger.calls.info[0].obj.action, 'applyThings')
+  t.is(logger.calls.info[0].obj.detail.method, 'ping')
+  t.is(logger.calls.info[0].obj.detail.affected, 1)
+})
+
+test('WrkProcVar: saveWrkSettings emits audit log', async t => {
+  const logger = mockLogger()
+  const w = protoWorker()
+  w.logger = logger
+  w.settings = {
+    get: async () => ({ value: JSON.stringify({}) }),
+    put: async () => {}
+  }
+
+  await w.saveWrkSettings({ entries: { autoSleep: true } })
+
+  t.is(logger.calls.info.length, 1)
+  t.is(logger.calls.info[0].obj.action, 'saveWrkSettings')
+  t.alike(logger.calls.info[0].obj.detail.entryKeys, ['autoSleep'])
+})
+
+test('WrkProcVar: rackReboot emits audit log before stopping', async t => {
+  const logger = mockLogger()
+  const w = protoWorker()
+  w.logger = logger
+  w.stop = () => {}
+
+  w.rackReboot({})
+
+  t.is(logger.calls.info.length, 1)
+  t.is(logger.calls.info[0].obj.action, 'rackReboot')
+})
