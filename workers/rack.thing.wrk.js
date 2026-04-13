@@ -118,19 +118,63 @@ class WrkProcVar extends TetherWrkBase {
   }
 
   _auditLog (action, req, opts = {}) {
-    if (!this.logger) return
+    try {
+      if (!this.logger) return
 
-    const { outcome = 'success', error = null, detail = {} } = opts
-    const level = outcome === 'success' ? 'info' : 'warn'
-    this.logger[level]({
-      audit: true,
-      action,
-      outcome,
-      user: req.user || null,
-      thingId: req.id || req.thingId || null,
-      detail,
-      ...(error ? { error } : {})
-    }, `audit: ${action} ${outcome}`)
+      const { outcome = 'success', error = null, detail = {} } = opts
+      const level = outcome === 'success' ? 'info' : 'warn'
+      this.logger[level]({
+        audit: true,
+        action,
+        outcome,
+        user: req.user || null,
+        thingId: req.id || req.thingId || null,
+        detail,
+        ...(error ? { error } : {})
+      }, `audit: ${action} ${outcome}`)
+    } catch (e) {
+      this.debugError('ERR_AUDIT_LOG', e)
+    }
+  }
+
+  _getAuditDetail (method, req, result) {
+    switch (method) {
+      case 'registerThing':
+        return { thingId: req.id, code: req.code }
+      case 'updateThing':
+        return { forceOverwrite: !!req.forceOverwrite, actionId: req.actionId }
+      case 'saveThingComment':
+        return { thingId: req.thingId }
+      case 'editThingComment':
+      case 'deleteThingComment':
+        return { thingId: req.thingId, commentId: req.id || req.ts }
+      case 'forgetThings':
+        return { query: req.query, all: !!req.all }
+      case 'applyThings':
+        return { method: req.method, query: req.query, affected: result }
+      case 'saveWrkSettings':
+        return { entryKeys: req.entries ? Object.keys(req.entries) : [] }
+      default:
+        return {}
+    }
+  }
+
+  async handleRpcReply (method, req) {
+    let data
+    try {
+      data = this.net_r0.parseInputJSON(req)
+    } catch (e) {
+      this._auditLog(method, {}, { outcome: 'failure', error: e.message })
+      return this.net_r0.toOutJSON(`[HRPC_ERR]=${e.message}`)
+    }
+    try {
+      const res = await this[method](data)
+      this._auditLog(method, data, { detail: this._getAuditDetail(method, data, res) })
+      return this.net_r0.toOutJSON(res)
+    } catch (e) {
+      this._auditLog(method, data, { outcome: 'failure', error: e.message })
+      return this.net_r0.toOutJSON(`[HRPC_ERR]=${e.message}`)
+    }
   }
 
   _addWhitelistedActions (actions) {
@@ -580,10 +624,6 @@ class WrkProcVar extends TetherWrkBase {
     })
     await this.setupThing(thg)
 
-    this._auditLog('registerThing', req, {
-      detail: { thingId: thg.id, code: thg.code }
-    })
-
     return 1
   }
 
@@ -652,10 +692,6 @@ class WrkProcVar extends TetherWrkBase {
 
     await this.reconnectThing(thg)
 
-    this._auditLog('updateThing', req, {
-      detail: { forceOverwrite: !!req.forceOverwrite, actionId: req.actionId }
-    })
-
     return 1
   }
 
@@ -709,10 +745,6 @@ class WrkProcVar extends TetherWrkBase {
 
     await this._saveThing(thg)
 
-    this._auditLog('saveThingComment', req, {
-      detail: { thingId: req.thingId }
-    })
-
     return 1
   }
 
@@ -733,10 +765,6 @@ class WrkProcVar extends TetherWrkBase {
 
     await this._saveThing(thg)
 
-    this._auditLog('editThingComment', req, {
-      detail: { thingId: req.thingId, commentId: req.id || req.ts }
-    })
-
     return 1
   }
 
@@ -756,10 +784,6 @@ class WrkProcVar extends TetherWrkBase {
     thg.comments.splice(commentIndex, 1)
 
     await this._saveThing(thg)
-
-    this._auditLog('deleteThingComment', req, {
-      detail: { thingId: req.thingId, commentId: req.id || req.ts }
-    })
 
     return 1
   }
@@ -806,10 +830,6 @@ class WrkProcVar extends TetherWrkBase {
 
       await this._forgetThing(thgId)
     }
-
-    this._auditLog('forgetThings', req, {
-      detail: { query: req.query, all: !!req.all, count: thgIds.length }
-    })
 
     return 1
   }
@@ -1019,10 +1039,6 @@ class WrkProcVar extends TetherWrkBase {
     )
 
     const total = res.reduce((acc, e) => acc + e, 0)
-
-    this._auditLog('applyThings', req, {
-      detail: { method: req.method, query: req.query, affected: total }
-    })
 
     return total
   }
@@ -1294,18 +1310,10 @@ class WrkProcVar extends TetherWrkBase {
   async saveWrkSettings (req) {
     if (!req.entries) throw new Error('ERR_ENTRIES_INVALID')
 
-    const result = await lWrkFunSettings.saveSettingsEntries.call(this, req.entries)
-
-    this._auditLog('saveWrkSettings', req, {
-      detail: { entryKeys: Object.keys(req.entries) }
-    })
-
-    return result
+    return await lWrkFunSettings.saveSettingsEntries.call(this, req.entries)
   }
 
   rackReboot (req) {
-    this._auditLog('rackReboot', req, { detail: {} })
-
     this.stop(() => {
       return exit(-1)
     })
@@ -1451,20 +1459,7 @@ class WrkProcVar extends TetherWrkBase {
         RPC_METHODS.forEach(method => {
           rpcServer.respond(method, async (req) => {
             if (AUDIT_METHODS.has(method)) {
-              let data
-              try {
-                data = this.net_r0.parseInputJSON(req)
-              } catch (e) {
-                this._auditLog(method, {}, { outcome: 'failure', error: e.message })
-                return this.net_r0.toOutJSON(`[HRPC_ERR]=${e.message}`)
-              }
-              try {
-                const res = await this[method](data)
-                return this.net_r0.toOutJSON(res)
-              } catch (e) {
-                this._auditLog(method, data, { outcome: 'failure', error: e.message })
-                return this.net_r0.toOutJSON(`[HRPC_ERR]=${e.message}`)
-              }
+              return this.handleRpcReply(method, req)
             }
             return await this.net_r0.handleReply(method, req)
           })

@@ -1139,53 +1139,60 @@ test('WrkProcVar: _auditLog defaults user and thingId to null', async t => {
   t.is(entry.obj.thingId, null)
 })
 
-test('WrkProcVar: registerThing emits audit log', async t => {
-  const logger = mockLogger()
+function auditedWorker (logger) {
   const w = protoWorker()
   w.logger = logger
+  w.net_r0.parseInputJSON = (x) => x
+  w.net_r0.toOutJSON = (x) => x
+  return w
+}
+
+test('WrkProcVar: handleRpcReply emits audit log for registerThing', async t => {
+  const logger = mockLogger()
+  const w = auditedWorker(logger)
   w.ctx.slave = false
   w.mem.things = {}
   w._validateRegisterThing = () => {}
-  w._registerAndStoreThing = async (data) => ({
-    id: data.id || 'new-id',
-    code: 'THING-0001'
-  })
+  w._registerAndStoreThing = async (data) => ({ id: data.id, code: data.code })
   w.setupThing = async () => {}
 
-  await w.registerThing({ user: 'admin@test.com', info: {} })
+  await w.handleRpcReply('registerThing', {
+    user: 'admin@test.com',
+    id: 't1',
+    code: 'THING-0001',
+    info: {}
+  })
 
   t.is(logger.calls.info.length, 1)
   t.is(logger.calls.info[0].obj.action, 'registerThing')
+  t.is(logger.calls.info[0].obj.detail.thingId, 't1')
   t.is(logger.calls.info[0].obj.detail.code, 'THING-0001')
 })
 
-test('WrkProcVar: forgetThings emits audit log', async t => {
+test('WrkProcVar: handleRpcReply emits audit log for forgetThings', async t => {
   const logger = mockLogger()
-  const w = protoWorker()
-  w.logger = logger
+  const w = auditedWorker(logger)
   w.ctx.slave = false
   w.mem.things = { t1: { id: 't1' } }
   w.things = { del: async () => {} }
   w.forgetThingHook0 = async () => {}
 
-  await w.forgetThings({ all: true })
+  await w.handleRpcReply('forgetThings', { all: true })
 
   t.is(logger.calls.info.length, 1)
   t.is(logger.calls.info[0].obj.action, 'forgetThings')
   t.is(logger.calls.info[0].obj.detail.all, true)
-  t.is(logger.calls.info[0].obj.detail.count, 1)
 })
 
-test('WrkProcVar: applyThings emits audit log', async t => {
+test('WrkProcVar: handleRpcReply emits audit log for applyThings with affected count', async t => {
   const logger = mockLogger()
-  const w = protoWorker()
-  w.logger = logger
+  const w = auditedWorker(logger)
   w._handler = WrkProcVar.prototype._createApplyThingsProxy.call(w)
   w.mem.things = {
     t1: { id: 't1', ctrl: { ping: async () => 7 } }
   }
 
-  await w.applyThings({ method: 'ping', params: [] })
+  await w.handleRpcReply('applyThings', { method: 'ping', params: [] })
 
   t.is(logger.calls.info.length, 1)
   t.is(logger.calls.info[0].obj.action, 'applyThings')
@@ -1193,30 +1200,67 @@ test('WrkProcVar: applyThings emits audit log', async t => {
   t.is(logger.calls.info[0].obj.detail.affected, 1)
 })
 
-test('WrkProcVar: saveWrkSettings emits audit log', async t => {
+test('WrkProcVar: handleRpcReply emits audit log for saveWrkSettings', async t => {
   const logger = mockLogger()
-  const w = protoWorker()
-  w.logger = logger
+  const w = auditedWorker(logger)
   w.settings = {
     get: async () => ({ value: JSON.stringify({}) }),
     put: async () => {}
   }
 
-  await w.saveWrkSettings({ entries: { autoSleep: true } })
+  await w.handleRpcReply('saveWrkSettings', { entries: { autoSleep: true } })
 
   t.is(logger.calls.info.length, 1)
   t.is(logger.calls.info[0].obj.action, 'saveWrkSettings')
   t.alike(logger.calls.info[0].obj.detail.entryKeys, ['autoSleep'])
 })
 
-test('WrkProcVar: rackReboot emits audit log before stopping', async t => {
+test('WrkProcVar: handleRpcReply emits audit log for rackReboot', async t => {
   const logger = mockLogger()
-  const w = protoWorker()
-  w.logger = logger
+  const w = auditedWorker(logger)
   w.stop = () => {}
 
-  w.rackReboot({})
+  await w.handleRpcReply('rackReboot', {})
 
   t.is(logger.calls.info.length, 1)
   t.is(logger.calls.info[0].obj.action, 'rackReboot')
+})
+
+test('WrkProcVar: handleRpcReply emits failure audit on method error', async t => {
+  const logger = mockLogger()
+  const w = auditedWorker(logger)
+  w.registerThing = async () => { throw new Error('ERR_BOOM') }
+
+  await w.handleRpcReply('registerThing', { user: 'u', id: 't1' })
+
+  t.is(logger.calls.warn.length, 1)
+  t.is(logger.calls.warn[0].obj.action, 'registerThing')
+  t.is(logger.calls.warn[0].obj.outcome, 'failure')
+  t.is(logger.calls.warn[0].obj.error, 'ERR_BOOM')
+})
+
+test('WrkProcVar: handleRpcReply emits failure audit when parseInputJSON throws', async t => {
+  const logger = mockLogger()
+  const w = protoWorker()
+  w.logger = logger
+  w.net_r0.parseInputJSON = () => { throw new Error('ERR_PARSE') }
+  w.net_r0.toOutJSON = (x) => x
+
+  await w.handleRpcReply('registerThing', Buffer.from('bogus'))
+
+  t.is(logger.calls.warn.length, 1)
+  t.is(logger.calls.warn[0].obj.outcome, 'failure')
+  t.is(logger.calls.warn[0].obj.error, 'ERR_PARSE')
+})
+
+test('WrkProcVar: _auditLog swallows logger errors to not block rpc', async t => {
+  const w = protoWorker()
+  w.logger = {
+    info: () => { throw new Error('ERR_LOGGER_DOWN') },
+    warn: () => { throw new Error('ERR_LOGGER_DOWN') }
+  }
+  w.debugError = () => {}
+
+  w._auditLog('registerThing', { id: 't1' }, { detail: {} })
+  t.pass('did not throw')
 })
