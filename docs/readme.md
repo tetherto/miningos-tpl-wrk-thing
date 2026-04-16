@@ -1,15 +1,12 @@
 # OpenRPC specification generation
 
-This document proposes how the OpenRPC specification can generated from the codebase and rendered as HTML documentation on a user site such as a Fumadocs site.
-
-![](./static/fumadocs-outcome.png)
+This document describes how the OpenRPC specification is generated from the codebase.
 
 ## Quick reference
 
-The generated API documentation is available in this folder:
+The generated API specification:
 
-- [`openrpc.json`](openrpc.json) - OpenRPC 1.3.2 specification (20 methods, 25 schemas)
-- [`openrpc.yaml`](openrpc.yaml) - Human-readable YAML version
+- [`openrpc.json`](openrpc.json) - OpenRPC specification
 
 To regenerate after code changes:
 
@@ -18,17 +15,16 @@ npm run openrpc:generate
 npm run openrpc:validate
 ```
 
-> Note, that the workflow for who does the regeneration and commits the new docs is tbd.
-
 ## Overview
 
 The API specification is generated directly from JSDoc annotations in the source code, ensuring documentation stays in sync with the implementation.
 
 ```
-JSDoc ──► TypeScript ──► JSON Schema ──► OpenRPC ──► MDX ──► HTML
-          (tsc)      (ts-json-schema)              (markdown-gen)  (Fumadocs)
+JSDoc ──► TypeScript ──► JSON Schema ──► OpenRPC
+          (tsc)      (ts-json-schema)
 ```
-> The tooling options for JSDoc are thin, hence the proposed conversion to TypeScript.
+
+The generated `openrpc.json` is a standard OpenRPC document that can be consumed by documentation systems to produce user-facing API docs.
 
 ## Generation pipeline
 
@@ -90,8 +86,6 @@ The generator script ([`scripts/generate-openrpc.js`](../scripts/generate-openrp
 
 ### Step 5: Validation
 
-#### 5.1 Machine validation
-
 `@open-rpc/schema-utils-js` validates the generated spec against the OpenRPC meta-schema:
 
 ```bash
@@ -100,29 +94,14 @@ npm run openrpc:validate
 
 This catches structural errors, missing required fields, and schema violations.
 
-#### 5.2 Human validation
-
-The JSON spec is converted to YAML for easier human review:
-
-```bash
-npm run openrpc:yaml
-```
-This generates [`docs/openrpc.yaml`](openrpc.yaml) — a single readable file where reviewers can verify:
-
 ## Commands
 
 ```bash
 # Generate the OpenRPC spec
 npm run openrpc:generate
 
-# Machine validation (schema compliance)
+# Validate the spec
 npm run openrpc:validate
-
-# Human validation (generate YAML for review)
-npm run openrpc:yaml
-
-# Generate manifest for Fumadocs integration
-npm run openrpc:manifest
 ```
 
 ## Files
@@ -133,13 +112,9 @@ npm run openrpc:manifest
 | [`workers/rack.thing.wrk.js`](../workers/rack.thing.wrk.js) | RPC method implementations with JSDoc |
 | [`tsconfig.json`](../tsconfig.json) | TypeScript config for JSDoc support |
 | [`scripts/generate-openrpc.js`](../scripts/generate-openrpc.js) | Generation pipeline script |
-| [`scripts/validate-openrpc.js`](../scripts/validate-openrpc.js) | Machine validation script |
-| [`scripts/openrpc-to-yaml.js`](../scripts/openrpc-to-yaml.js) | YAML conversion for human review |
-| [`scripts/generate-manifest.js`](../scripts/generate-manifest.js) | Manifest generation for Fumadocs |
+| [`scripts/validate-openrpc.js`](../scripts/validate-openrpc.js) | Validation script |
 | [`docs/types/types.d.ts`](types/types.d.ts) | Generated TypeScript declarations |
 | [`docs/openrpc.json`](openrpc.json) | Generated OpenRPC specification |
-| [`docs/openrpc.yaml`](openrpc.yaml) | Human-readable YAML version |
-| [`docs/api-reference/manifest.json`](api-reference/manifest.json) | Manifest for Fumadocs stub generation |
 
 ## Tooling
 
@@ -148,50 +123,15 @@ npm run openrpc:manifest
 | `typescript` | Converts JSDoc to `.d.ts` declarations |
 | `ts-json-schema-generator` | Extracts JSON Schema from TypeScript |
 | `@open-rpc/schema-utils-js` | Validates OpenRPC documents |
-| `js-yaml` | Converts JSON to YAML for human review |
-| `@open-rpc/markdown-generator` | Converts OpenRPC to MDX (via Bun) |
 
-## TODOs
-
-Discuss alt to the verbose vanilla error listing, current @throws annotations repeat error descriptions across methods.
-Consider using union typedefs for error sets (e.g., ThingOperationErrors) to keep method annotations DRY while maintaining per-method error documentation (WARN not tested against spec validation).
-
-### CI integration (TOTO)
-
-> CI needs to be discussed; tbd.
-
-The GitHub workflow ([`.github/workflows/openrpc.yml`](../.github/workflows/openrpc.yml)) shoud ideally regenerates the spec on PRs to `main`:
-
-1. Run `npm run openrpc:generate`
-2. Run `npm run openrpc:validate`
-3. Fails PR if spec is invalid
-
-This ensures the OpenRPC spec is always valid before merging.
-
-### Fumadocs sync (TODO)
-
-While this repo validates the spec, the Fumadocs site needs separate automation to stay current:
-
-Possible paths:
-- **Scheduled CI job** — Fumadocs runs a cron workflow to regenerate stubs and open a PR if changed
-- **Webhook trigger** — This repo notifies Fumadocs when manifest changes (e.g., via GitHub Actions workflow dispatch)
-
-Without this, Fumadocs maintainers must manually run `npm run stubs:generate` after API changes.
-
-#### Tweaking the outcome in Fumadocs
-
-As Fumadocs only ports the data from this repo per this suggested method, we may need to circle back on
-using @open-rpc/markdown-generator to convert the json to markdown to get the final look we want.
-
-The tooling is a good candidate for extending: it's MIT licensed, open source: https://github.com/open-rpc/markdown-generator, written in TypeScript, and is a relatively small codebase.
-
-## Adding/modifying methods
+## Adding or modifying methods
 
 1. Add JSDoc `@typedef` for parameters in [`workers/lib/types.js`](../workers/lib/types.js)
 2. Add JSDoc annotations to the method in [`workers/rack.thing.wrk.js`](../workers/rack.thing.wrk.js)
 3. Add the method-to-type mapping in [`scripts/generate-openrpc.js`](../scripts/generate-openrpc.js) (`PARAM_MAP`)
 4. Run `npm run openrpc:generate && npm run openrpc:validate`
 5. Commit both the source changes and the updated [`openrpc.json`](openrpc.json)
+6. Notify the documentation site maintainers that the spec has been updated
 
 ## Why this approach?
 
@@ -200,116 +140,19 @@ The tooling is a good candidate for extending: it's MIT licensed, open source: h
 - **Standard tooling**: Uses TypeScript and established npm packages
 - **Enforceable**: CI fails if spec is invalid
 - **No manual spec writing**: Types are extracted automatically
+- **Portable**: The OpenRPC JSON can be consumed by any documentation system
 
-## Downstream documentation
+## CI integration
 
-After validation, `openrpc.json` is converted to HTML documentation for end users.
+The GitHub workflow ([`.github/workflows/openrpc.yml`](../.github/workflows/openrpc.yml)) regenerates the spec on PRs to `main`:
 
-### Converting OpenRPC to MDX
+1. Run `npm run openrpc:generate`
+2. Run `npm run openrpc:validate`
+3. Fails PR if spec is invalid
 
-The `@open-rpc/markdown-generator` CLI generates static MDX files from the spec. Unlike React-based viewers, it's framework-agnostic and works with modern React versions.
+This ensures the OpenRPC spec is always valid before merging.
 
-**Prerequisites:** [Bun](https://bun.sh/) runtime
+## Notes
 
-**Generate MDX files:**
-
-```bash
-mkdir -p docs/api-reference
-bunx @open-rpc/markdown-generator docs/openrpc.json -m docs/api-reference
-```
-
-**Output:**
-
-```
-docs/api-reference/
-├── index.md              # API overview with method links
-├── registerThing.mdx     # One file per RPC method
-├── updateThing.mdx
-└── ... (20 method files)
-```
-
-Each method file includes:
-- Frontmatter (title, description)
-- Parameters with nested object documentation
-- Collapsible `<details>` for complex types
-- Result schema
-
-**Post-generation fixes:**
-
-```bash
-# Fix incorrect paths in index.md
-sed -i '' 's|./methods/|./|g' docs/api-reference/index.md
-
-# Remove invalid YAML comments from frontmatter
-for f in docs/api-reference/*.md docs/api-reference/*.mdx; do
-  sed -i '' 's/^# GENERATED DOCUMENTATION.*$//' "$f"
-done
-```
-
-### Fumadocs integration
-
-The central Fumadocs site pulls documentation from multiple worker repos using a manifest-driven stub system.
-
-**How it works:**
-
-1. This repo generates [`docs/api-reference/manifest.json`](api-reference/manifest.json) listing all methods
-2. Fumadocs fetches the manifest and generates stub MDX files
-3. At build time, stubs fetch the actual MDX content from this repo's raw GitHub URLs
-
-**To update docs after adding/changing methods:**
-
-```bash
-npm run openrpc:generate    # Regenerate OpenRPC spec
-npm run openrpc:manifest    # Regenerate manifest
-# Commit and push - Fumadocs will pick up changes on next stub regeneration
-```
-
-**Manifest format:**
-
-```json
-{
-  "name": "thing-worker",
-  "title": "MiningOS Thing Worker API",
-  "repo": "tetherto/miningos-tpl-wrk-thing",
-  "branch": "main",
-  "basePath": "docs/api-reference",
-  "methods": [
-    { "file": "registerThing.mdx", "title": "registerThing", "description": "..." }
-  ]
-}
-```
-
-See the Fumadocs repo README for instructions on adding new worker repos to the documentation site.
-
-**TODO: Automate docs sync**
-
-Currently, Fumadocs maintainers must manually run `npm run stubs:generate` when this repo's manifest changes. To automate:
-
-- **Scheduled CI job** — Fumadocs repo runs a cron workflow to regenerate stubs and open a PR if changed
-- **Webhook trigger** — This repo notifies Fumadocs when manifest changes (e.g., via GitHub Actions workflow dispatch)
-
-This ensures documentation stays in sync with API changes without manual intervention.
-
-### Why static MDX instead of React components?
-
-We evaluated React-based OpenRPC viewers but all failed with React 19 (used by Next.js 16 / Fumadocs):
-
-| Package | Issue |
-|---------|-------|
-| `@open-rpc/docs-react@2.1.1` | Uses `React.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentOwner` (removed in React 19) |
-| `@metamask/open-rpc-docs-react@0.2.0` | Hard dependency on `@docusaurus/router` |
-| `@stellar/open-rpc-docs-react@0.2.1` | Same React 19 incompatibility |
-
-The JSX transform is baked into pre-compiled bundles, so these workarounds failed:
-- npm overrides / peer dependency flags
-- webpack aliases to force React version
-- `transpilePackages` in Next.js config
-- Dynamic imports with `ssr: false`
-
-Static MDX generation sidesteps React version issues entirely.
-
-### Limitations
-
-- No interactive "try it" functionality (would require JSON-RPC client integration)
-- Schema changes require regeneration
-- Some styling may need adjustment per theme
+- The workflow for who regenerates and commits the spec after code changes is to be determined
+- Consider using union typedefs for error sets (e.g., `ThingOperationErrors`) to reduce repetition in `@throws` annotations

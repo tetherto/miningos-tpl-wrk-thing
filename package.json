@@ -36,9 +36,7 @@
     "test:device": "NODE_ENV=test brittle tests/device.test.js",
     "test:coverage": "brittle --coverage tests/{,**/}*.test.js",
     "openrpc:generate": "node scripts/generate-openrpc.js",
-    "openrpc:validate": "node scripts/validate-openrpc.js",
-    "openrpc:yaml": "node scripts/openrpc-to-yaml.js",
-    "openrpc:manifest": "node scripts/generate-manifest.js"
+    "openrpc:validate": "node scripts/validate-openrpc.js"
   },
   "dependencies": {
     "@bitfinex/lib-js-util-promise": "git+https://github.com/bitfinexcom/lib-js-util-promise.git",
@@ -57,7 +55,6 @@
   "devDependencies": {
     "@open-rpc/schema-utils-js": "2.2.1",
     "brittle": "3.16.3",
-    "js-yaml": "4.1.0",
     "proxyquire": "2.1.3",
     "standard": "17.1.2",
     "tether-svc-test-helper": "git+https://github.com/tetherto/tether-svc-test-helper.git",
