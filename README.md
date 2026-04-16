@@ -223,20 +223,10 @@ Periodic data collection from devices:
 
 ## API Reference
 
-API documentation is generated from JSDoc annotations in the source code:
-
-- [`docs/openrpc.yaml`](docs/openrpc.yaml) — Human-readable spec
-- [`docs/openrpc.json`](docs/openrpc.json) — OpenRPC 1.3.2 specification
-
-For implementation details, see JSDoc annotations in:
-- [`workers/rack.thing.wrk.js`](workers/rack.thing.wrk.js) — Method documentation
-- [`workers/lib/types.js`](workers/lib/types.js) — Type definitions and error codes
-
-To regenerate after code changes:
+The API is documented via [`docs/openrpc.json`](docs/openrpc.json), generated from JSDoc annotations. Add `@typedef` in [`workers/lib/types.js`](workers/lib/types.js) for types and annotate methods in [`workers/rack.thing.wrk.js`](workers/rack.thing.wrk.js) with `@param`, `@returns`, and `@throws`. Then run:
 
 ```bash
-npm run openrpc:generate
-npm run openrpc:validate
+npm run openrpc:generate && npm run openrpc:validate
 ```
 
-See [`docs/readme.md`](docs/readme.md) for the full generation pipeline.
+The JSON spec can be consumed by documentation systems to produce user-facing API docs. See [`docs/readme.md`](docs/readme.md) for details.
