@@ -144,13 +144,13 @@ npm run openrpc:validate
 
 ## CI integration
 
-The GitHub workflow ([`.github/workflows/openrpc.yml`](../.github/workflows/openrpc.yml)) regenerates the spec on PRs to `main`:
+The GitHub workflow ([`.github/workflows/openrpc.yml`](../.github/workflows/openrpc.yml)) regenerates and validates the spec on PRs to `main`:
 
 1. Run `npm run openrpc:generate`
 2. Run `npm run openrpc:validate`
-3. Fails PR if spec is invalid
+3. Check that `docs/openrpc.json` matches the committed version
 
-This ensures the OpenRPC spec is always valid before merging.
+The PR fails if validation fails or if the generated spec differs from what's committed.
 
 ## Notes
 

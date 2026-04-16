@@ -229,4 +229,4 @@ The API is documented via [`docs/openrpc.json`](docs/openrpc.json), generated fr
 npm run openrpc:generate && npm run openrpc:validate
 ```
 
-The JSON spec can be consumed by documentation systems to produce user-facing API docs. See [`docs/readme.md`](docs/readme.md) for details.
+The JSON spec can be consumed by documentation systems to produce user-facing API docs. [Learn more about the API specification tooling](docs/readme.md).
