@@ -599,6 +599,96 @@ export type ReplicaConf = {
  */
 export type WrkSettings = any;
 /**
+ * Result for `getRack` RPC method.
+ */
+export type GetRackResult = Rack;
+/**
+ * Result for `queryThing` RPC method. Polymorphic: the `method` parameter
+ * dispatches to a controller method on the target thing, so the response
+ * shape depends entirely on that controller. Intentionally untyped.
+ */
+export type QueryThingResult = any;
+/**
+ * Result for `listThings` RPC method.
+ */
+export type ListThingsResult = Thing[];
+/**
+ * Result for `getThingsCount` RPC method. Count of things matching the query.
+ */
+export type GetThingsCountResult = number;
+/**
+ * Result for `registerThing` RPC method. Returns 1 on success.
+ */
+export type RegisterThingResult = number;
+/**
+ * Result for `updateThing` RPC method. Returns 1 on success.
+ */
+export type UpdateThingResult = number;
+/**
+ * Result for `saveThingComment` RPC method. Returns 1 on success.
+ */
+export type SaveThingCommentResult = number;
+/**
+ * Result for `editThingComment` RPC method. Returns 1 on success.
+ */
+export type EditThingCommentResult = number;
+/**
+ * Result for `deleteThingComment` RPC method. Returns 1 on success.
+ */
+export type DeleteThingCommentResult = number;
+/**
+ * Result for `forgetThings` RPC method. Returns 1 on success.
+ */
+export type ForgetThingsResult = number;
+/**
+ * Result for `applyThings` RPC method. Number of successful operations.
+ */
+export type ApplyThingsResult = number;
+/**
+ * Result for `tailLog` RPC method.
+ */
+export type TailLogResult = LogEntry[];
+/**
+ * Result for `getHistoricalLogs` RPC method. Discriminated by `req.logType`:
+ * `'alerts'` yields HistoricalAlert entries, `'info'` yields HistoricalInfoChange
+ * entries. Emitted as `oneOf` in the OpenRPC output.
+ */
+export type GetHistoricalLogsResult = HistoricalAlert[] | HistoricalInfoChange[];
+/**
+ * Result for `getReplicaConf` RPC method.
+ */
+export type GetReplicaConfResult = ReplicaConf;
+/**
+ * Result for `rackReboot` RPC method. Returns 1 immediately (process exits
+ * asynchronously).
+ */
+export type RackRebootResult = number;
+/**
+ * Result for `getWrkExtData` RPC method. Extended worker data, extensible by
+ * subclasses via `_getWrkExtData`. Shape is deployment-specific.
+ */
+export type GetWrkExtDataResult = any;
+/**
+ * Result for `getWrkConf` RPC method. Global configuration object (or a
+ * projected subset when `req.fields` is supplied). Shape is deployment-specific.
+ */
+export type GetWrkConfResult = any;
+/**
+ * Result for `getThingConf` RPC method. For `requestType: 'nextAvailableCode'`
+ * the result is the next available thing code string.
+ */
+export type GetThingConfResult = string;
+/**
+ * Result for `getWrkSettings` RPC method.
+ */
+export type GetWrkSettingsResult = WrkSettings;
+/**
+ * Result for `saveWrkSettings` RPC method. Polymorphic: passes through the
+ * underlying settings-save facility, whose return shape varies. Intentionally
+ * untyped.
+ */
+export type SaveWrkSettingsResult = any;
+/**
  * - Operation blocked on slave/replica nodes
  */
 export type ErrSlaveBlock = "ERR_SLAVE_BLOCK";

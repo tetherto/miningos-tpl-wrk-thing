@@ -20,8 +20,10 @@
         }
       ],
       "result": {
-        "name": "result",
-        "schema": {}
+        "name": "getRackResult",
+        "schema": {
+          "$ref": "#/components/schemas/GetRackResult"
+        }
       }
     },
     {
@@ -35,8 +37,10 @@
         }
       ],
       "result": {
-        "name": "result",
-        "schema": {}
+        "name": "queryThingResult",
+        "schema": {
+          "$ref": "#/components/schemas/QueryThingResult"
+        }
       }
     },
     {
@@ -50,8 +54,10 @@
         }
       ],
       "result": {
-        "name": "result",
-        "schema": {}
+        "name": "listThingsResult",
+        "schema": {
+          "$ref": "#/components/schemas/ListThingsResult"
+        }
       }
     },
     {
@@ -65,8 +71,10 @@
         }
       ],
       "result": {
-        "name": "result",
-        "schema": {}
+        "name": "getThingsCountResult",
+        "schema": {
+          "$ref": "#/components/schemas/GetThingsCountResult"
+        }
       }
     },
     {
@@ -80,8 +88,10 @@
         }
       ],
       "result": {
-        "name": "result",
-        "schema": {}
+        "name": "registerThingResult",
+        "schema": {
+          "$ref": "#/components/schemas/RegisterThingResult"
+        }
       }
     },
     {
@@ -95,8 +105,10 @@
         }
       ],
       "result": {
-        "name": "result",
-        "schema": {}
+        "name": "updateThingResult",
+        "schema": {
+          "$ref": "#/components/schemas/UpdateThingResult"
+        }
       }
     },
     {
@@ -110,8 +122,10 @@
         }
       ],
       "result": {
-        "name": "result",
-        "schema": {}
+        "name": "saveThingCommentResult",
+        "schema": {
+          "$ref": "#/components/schemas/SaveThingCommentResult"
+        }
       }
     },
     {
@@ -125,8 +139,10 @@
         }
       ],
       "result": {
-        "name": "result",
-        "schema": {}
+        "name": "editThingCommentResult",
+        "schema": {
+          "$ref": "#/components/schemas/EditThingCommentResult"
+        }
       }
     },
     {
@@ -140,8 +156,10 @@
         }
       ],
       "result": {
-        "name": "result",
-        "schema": {}
+        "name": "deleteThingCommentResult",
+        "schema": {
+          "$ref": "#/components/schemas/DeleteThingCommentResult"
+        }
       }
     },
     {
@@ -155,8 +173,10 @@
         }
       ],
       "result": {
-        "name": "result",
-        "schema": {}
+        "name": "forgetThingsResult",
+        "schema": {
+          "$ref": "#/components/schemas/ForgetThingsResult"
+        }
       }
     },
     {
@@ -170,8 +190,10 @@
         }
       ],
       "result": {
-        "name": "result",
-        "schema": {}
+        "name": "applyThingsResult",
+        "schema": {
+          "$ref": "#/components/schemas/ApplyThingsResult"
+        }
       }
     },
     {
@@ -185,8 +207,10 @@
         }
       ],
       "result": {
-        "name": "result",
-        "schema": {}
+        "name": "tailLogResult",
+        "schema": {
+          "$ref": "#/components/schemas/TailLogResult"
+        }
       }
     },
     {
@@ -200,8 +224,10 @@
         }
       ],
       "result": {
-        "name": "result",
-        "schema": {}
+        "name": "getHistoricalLogsResult",
+        "schema": {
+          "$ref": "#/components/schemas/GetHistoricalLogsResult"
+        }
       }
     },
     {
@@ -215,8 +241,10 @@
         }
       ],
       "result": {
-        "name": "result",
-        "schema": {}
+        "name": "getReplicaConfResult",
+        "schema": {
+          "$ref": "#/components/schemas/GetReplicaConfResult"
+        }
       }
     },
     {
@@ -230,8 +258,10 @@
         }
       ],
       "result": {
-        "name": "result",
-        "schema": {}
+        "name": "rackRebootResult",
+        "schema": {
+          "$ref": "#/components/schemas/RackRebootResult"
+        }
       }
     },
     {
@@ -245,8 +275,10 @@
         }
       ],
       "result": {
-        "name": "result",
-        "schema": {}
+        "name": "getWrkExtDataResult",
+        "schema": {
+          "$ref": "#/components/schemas/GetWrkExtDataResult"
+        }
       }
     },
     {
@@ -260,8 +292,10 @@
         }
       ],
       "result": {
-        "name": "result",
-        "schema": {}
+        "name": "getWrkConfResult",
+        "schema": {
+          "$ref": "#/components/schemas/GetWrkConfResult"
+        }
       }
     },
     {
@@ -275,8 +309,10 @@
         }
       ],
       "result": {
-        "name": "result",
-        "schema": {}
+        "name": "getThingConfResult",
+        "schema": {
+          "$ref": "#/components/schemas/GetThingConfResult"
+        }
       }
     },
     {
@@ -290,8 +326,10 @@
         }
       ],
       "result": {
-        "name": "result",
-        "schema": {}
+        "name": "getWrkSettingsResult",
+        "schema": {
+          "$ref": "#/components/schemas/GetWrkSettingsResult"
+        }
       }
     },
     {
@@ -305,8 +343,10 @@
         }
       ],
       "result": {
-        "name": "result",
-        "schema": {}
+        "name": "saveWrkSettingsResult",
+        "schema": {
+          "$ref": "#/components/schemas/SaveWrkSettingsResult"
+        }
       }
     }
   ],
@@ -314,6 +354,29 @@
     "schemas": {
       "GetRackParams": {
         "description": "Parameters for `getRack` RPC method"
+      },
+      "Rack": {
+        "additionalProperties": false,
+        "description": "Rack information",
+        "properties": {
+          "id": {
+            "description": "- Rack identifier",
+            "type": "string"
+          },
+          "rpcPubKey": {
+            "description": "- RPC server public key (hex encoded)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "rpcPubKey"
+        ],
+        "type": "object"
+      },
+      "GetRackResult": {
+        "$ref": "#/components/schemas/Rack",
+        "description": "Result for `getRack` RPC method."
       },
       "QueryThingParams": {
         "additionalProperties": false,
@@ -339,6 +402,9 @@
           "params"
         ],
         "type": "object"
+      },
+      "QueryThingResult": {
+        "description": "Result for `queryThing` RPC method. Polymorphic: the `method` parameter dispatches to a controller method on the target thing, so the response shape depends entirely on that controller. Intentionally untyped."
       },
       "FieldProjection": {
         "additionalProperties": {
@@ -396,15 +462,123 @@
         },
         "type": "object"
       },
-      "GetThingsCountParams": {
+      "Alert": {
         "additionalProperties": false,
-        "description": "Parameters for `getThingsCount` RPC method",
+        "description": "Alert generated from thing monitoring",
         "properties": {
-          "query": {
-            "$ref": "#/components/schemas/MongoQuery",
-            "description": "- MongoDB-style query filter"
+          "createdAt": {
+            "description": "- Unix timestamp when alert was created",
+            "type": "number"
+          },
+          "message": {
+            "description": "- Alert message",
+            "type": "string"
+          },
+          "type": {
+            "description": "- Alert type identifier",
+            "type": "string"
+          },
+          "uuid": {
+            "description": "- Alert unique identifier",
+            "type": "string"
           }
         },
+        "required": [
+          "uuid",
+          "createdAt",
+          "type"
+        ],
+        "type": "object"
+      },
+      "Thing": {
+        "additionalProperties": false,
+        "description": "A manageable entity in MiningOS (device, sensor, miner, etc.)",
+        "properties": {
+          "code": {
+            "description": "- Human-readable code (e.g., \"MINER-0001\")",
+            "type": "string"
+          },
+          "comments": {
+            "description": "- User comments attached to the thing",
+            "items": {
+              "$ref": "#/components/schemas/ThingComment"
+            },
+            "type": "array"
+          },
+          "id": {
+            "description": "- Unique identifier (UUID)",
+            "type": "string"
+          },
+          "info": {
+            "$ref": "#/components/schemas/ThingInfo",
+            "description": "- Metadata about the thing"
+          },
+          "last": {
+            "$ref": "#/components/schemas/ThingStatus",
+            "description": "- Last known status from snapshot collection"
+          },
+          "opts": {
+            "$ref": "#/components/schemas/ThingOpts",
+            "description": "- Connection and configuration options"
+          },
+          "rack": {
+            "description": "- Rack identifier this thing belongs to",
+            "type": "string"
+          },
+          "tags": {
+            "description": "- Array of tags for filtering and categorization",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": {
+            "description": "- Thing type identifier",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "type",
+          "tags",
+          "info",
+          "opts",
+          "rack"
+        ],
+        "type": "object"
+      },
+      "ThingComment": {
+        "additionalProperties": false,
+        "description": "User comment attached to a thing",
+        "properties": {
+          "comment": {
+            "description": "- Comment text content",
+            "type": "string"
+          },
+          "id": {
+            "description": "- Comment unique identifier",
+            "type": "string"
+          },
+          "pos": {
+            "description": "- Optional position reference",
+            "type": "string"
+          },
+          "ts": {
+            "description": "- Unix timestamp when comment was created",
+            "type": "number"
+          },
+          "user": {
+            "description": "- Username of comment author",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "ts",
+          "comment",
+          "user"
+        ],
         "type": "object"
       },
       "ThingInfo": {
@@ -453,6 +627,56 @@
         },
         "type": "object"
       },
+      "ThingStatus": {
+        "additionalProperties": false,
+        "description": "Last known status from snapshot collection",
+        "properties": {
+          "alerts": {
+            "description": "- Active alerts for this thing",
+            "items": {
+              "$ref": "#/components/schemas/Alert"
+            },
+            "type": "array"
+          },
+          "err": {
+            "description": "- Error message if last collection failed",
+            "type": "string"
+          },
+          "snap": {
+            "description": "- Snapshot data from device"
+          },
+          "ts": {
+            "description": "- Timestamp of last status update",
+            "type": "number"
+          }
+        },
+        "required": [
+          "ts"
+        ],
+        "type": "object"
+      },
+      "ListThingsResult": {
+        "description": "Result for `listThings` RPC method.",
+        "items": {
+          "$ref": "#/components/schemas/Thing"
+        },
+        "type": "array"
+      },
+      "GetThingsCountParams": {
+        "additionalProperties": false,
+        "description": "Parameters for `getThingsCount` RPC method",
+        "properties": {
+          "query": {
+            "$ref": "#/components/schemas/MongoQuery",
+            "description": "- MongoDB-style query filter"
+          }
+        },
+        "type": "object"
+      },
+      "GetThingsCountResult": {
+        "description": "Result for `getThingsCount` RPC method. Count of things matching the query.",
+        "type": "number"
+      },
       "RegisterThingParams": {
         "additionalProperties": false,
         "description": "Parameters for `registerThing` RPC method",
@@ -493,6 +717,10 @@
           "opts"
         ],
         "type": "object"
+      },
+      "RegisterThingResult": {
+        "description": "Result for `registerThing` RPC method. Returns 1 on success.",
+        "type": "number"
       },
       "UpdateThingParams": {
         "additionalProperties": false,
@@ -539,6 +767,10 @@
         ],
         "type": "object"
       },
+      "UpdateThingResult": {
+        "description": "Result for `updateThing` RPC method. Returns 1 on success.",
+        "type": "number"
+      },
       "SaveThingCommentParams": {
         "additionalProperties": false,
         "description": "Parameters for `saveThingComment` RPC method",
@@ -566,6 +798,10 @@
           "user"
         ],
         "type": "object"
+      },
+      "SaveThingCommentResult": {
+        "description": "Result for `saveThingComment` RPC method. Returns 1 on success.",
+        "type": "number"
       },
       "EditThingCommentParams": {
         "additionalProperties": false,
@@ -599,6 +835,10 @@
         ],
         "type": "object"
       },
+      "EditThingCommentResult": {
+        "description": "Result for `editThingComment` RPC method. Returns 1 on success.",
+        "type": "number"
+      },
       "DeleteThingCommentParams": {
         "additionalProperties": false,
         "description": "Parameters for `deleteThingComment` RPC method",
@@ -626,6 +866,10 @@
         ],
         "type": "object"
       },
+      "DeleteThingCommentResult": {
+        "description": "Result for `deleteThingComment` RPC method. Returns 1 on success.",
+        "type": "number"
+      },
       "ForgetThingsParams": {
         "additionalProperties": false,
         "description": "Parameters for `forgetThings` RPC method",
@@ -640,6 +884,10 @@
           }
         },
         "type": "object"
+      },
+      "ForgetThingsResult": {
+        "description": "Result for `forgetThings` RPC method. Returns 1 on success.",
+        "type": "number"
       },
       "ApplyThingsParams": {
         "additionalProperties": false,
@@ -679,6 +927,10 @@
           "method"
         ],
         "type": "object"
+      },
+      "ApplyThingsResult": {
+        "description": "Result for `applyThings` RPC method. Number of successful operations.",
+        "type": "number"
       },
       "TailLogParams": {
         "additionalProperties": false,
@@ -727,6 +979,34 @@
         ],
         "type": "object"
       },
+      "LogEntry": {
+        "additionalProperties": false,
+        "description": "Log entry from tailLog",
+        "properties": {
+          "err": {
+            "description": "- Error message if collection failed",
+            "type": "string"
+          },
+          "snap": {
+            "description": "- Snapshot data"
+          },
+          "ts": {
+            "description": "- Timestamp",
+            "type": "number"
+          }
+        },
+        "required": [
+          "ts"
+        ],
+        "type": "object"
+      },
+      "TailLogResult": {
+        "description": "Result for `tailLog` RPC method.",
+        "items": {
+          "$ref": "#/components/schemas/LogEntry"
+        },
+        "type": "array"
+      },
       "GetHistoricalLogsParams": {
         "additionalProperties": false,
         "description": "Parameters for `getHistoricalLogs` RPC method",
@@ -765,14 +1045,111 @@
         ],
         "type": "object"
       },
+      "HistoricalAlert": {
+        "additionalProperties": false,
+        "description": "Historical alert entry",
+        "properties": {
+          "createdAt": {
+            "description": "- Unix timestamp",
+            "type": "number"
+          },
+          "thing": {
+            "$ref": "#/components/schemas/Thing",
+            "description": "- Associated thing (partial)"
+          },
+          "type": {
+            "description": "- Alert type",
+            "type": "string"
+          },
+          "uuid": {
+            "description": "- Alert unique identifier",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uuid",
+          "createdAt",
+          "type",
+          "thing"
+        ],
+        "type": "object"
+      },
+      "HistoricalInfoChange": {
+        "additionalProperties": false,
+        "description": "Historical info change entry",
+        "properties": {
+          "changes": {
+            "description": "- Object describing what changed"
+          },
+          "thing": {
+            "$ref": "#/components/schemas/Thing",
+            "description": "- Associated thing (partial)"
+          },
+          "ts": {
+            "description": "- Timestamp of change",
+            "type": "number"
+          }
+        },
+        "required": [
+          "ts",
+          "changes",
+          "thing"
+        ],
+        "type": "object"
+      },
+      "GetHistoricalLogsResult": {
+        "anyOf": [
+          {
+            "items": {
+              "$ref": "#/components/schemas/HistoricalAlert"
+            },
+            "type": "array"
+          },
+          {
+            "items": {
+              "$ref": "#/components/schemas/HistoricalInfoChange"
+            },
+            "type": "array"
+          }
+        ],
+        "description": "Result for `getHistoricalLogs` RPC method. Discriminated by `req.logType`: `'alerts'` yields HistoricalAlert entries, `'info'` yields HistoricalInfoChange entries. Emitted as `oneOf` in the OpenRPC output."
+      },
       "GetReplicaConfParams": {
         "description": "Parameters for `getReplicaConf` RPC method"
+      },
+      "ReplicaConf": {
+        "additionalProperties": false,
+        "description": "Replica configuration",
+        "properties": {
+          "keys": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "- Mapping of log names to replica keys",
+            "type": "object"
+          }
+        },
+        "required": [
+          "keys"
+        ],
+        "type": "object"
+      },
+      "GetReplicaConfResult": {
+        "$ref": "#/components/schemas/ReplicaConf",
+        "description": "Result for `getReplicaConf` RPC method."
       },
       "RackRebootParams": {
         "description": "Parameters for `rackReboot` RPC method"
       },
+      "RackRebootResult": {
+        "description": "Result for `rackReboot` RPC method. Returns 1 immediately (process exits asynchronously).",
+        "type": "number"
+      },
       "GetWrkExtDataParams": {
         "description": "Parameters for `getWrkExtData` RPC method"
+      },
+      "GetWrkExtDataResult": {
+        "description": "Result for `getWrkExtData` RPC method. Extended worker data, extensible by subclasses via `_getWrkExtData`. Shape is deployment-specific."
       },
       "GetWrkConfParams": {
         "additionalProperties": false,
@@ -784,6 +1161,9 @@
           }
         },
         "type": "object"
+      },
+      "GetWrkConfResult": {
+        "description": "Result for `getWrkConf` RPC method. Global configuration object (or a projected subset when `req.fields` is supplied). Shape is deployment-specific."
       },
       "GetThingConfParams": {
         "additionalProperties": false,
@@ -800,8 +1180,19 @@
         ],
         "type": "object"
       },
+      "GetThingConfResult": {
+        "description": "Result for `getThingConf` RPC method. For `requestType: 'nextAvailableCode'` the result is the next available thing code string.",
+        "type": "string"
+      },
       "GetWrkSettingsParams": {
         "description": "Parameters for `getWrkSettings` RPC method"
+      },
+      "WrkSettings": {
+        "description": "Worker settings"
+      },
+      "GetWrkSettingsResult": {
+        "$ref": "#/components/schemas/WrkSettings",
+        "description": "Result for `getWrkSettings` RPC method."
       },
       "SaveWrkSettingsParams": {
         "additionalProperties": false,
@@ -815,6 +1206,9 @@
           "entries"
         ],
         "type": "object"
+      },
+      "SaveWrkSettingsResult": {
+        "description": "Result for `saveWrkSettings` RPC method. Polymorphic: passes through the underlying settings-save facility, whose return shape varies. Intentionally untyped."
       }
     }
   }

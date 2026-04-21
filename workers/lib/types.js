@@ -320,6 +320,124 @@
  */
 
 // =============================================================================
+// RPC Method Result Type Aliases
+// =============================================================================
+// One Result typedef per method in RPC_METHODS. Naming convention:
+// `${Capitalize(methodName)}Result`. Aliases reuse the entity/result typedefs
+// above whenever possible. Polymorphic methods intentionally alias to `*`
+// (any) with a description — this is the documented escape hatch.
+
+/**
+ * Result for `getRack` RPC method.
+ * @typedef {Rack} GetRackResult
+ */
+
+/**
+ * Result for `queryThing` RPC method. Polymorphic: the `method` parameter
+ * dispatches to a controller method on the target thing, so the response
+ * shape depends entirely on that controller. Intentionally untyped.
+ * @typedef {*} QueryThingResult
+ */
+
+/**
+ * Result for `listThings` RPC method.
+ * @typedef {Thing[]} ListThingsResult
+ */
+
+/**
+ * Result for `getThingsCount` RPC method. Count of things matching the query.
+ * @typedef {number} GetThingsCountResult
+ */
+
+/**
+ * Result for `registerThing` RPC method. Returns 1 on success.
+ * @typedef {number} RegisterThingResult
+ */
+
+/**
+ * Result for `updateThing` RPC method. Returns 1 on success.
+ * @typedef {number} UpdateThingResult
+ */
+
+/**
+ * Result for `saveThingComment` RPC method. Returns 1 on success.
+ * @typedef {number} SaveThingCommentResult
+ */
+
+/**
+ * Result for `editThingComment` RPC method. Returns 1 on success.
+ * @typedef {number} EditThingCommentResult
+ */
+
+/**
+ * Result for `deleteThingComment` RPC method. Returns 1 on success.
+ * @typedef {number} DeleteThingCommentResult
+ */
+
+/**
+ * Result for `forgetThings` RPC method. Returns 1 on success.
+ * @typedef {number} ForgetThingsResult
+ */
+
+/**
+ * Result for `applyThings` RPC method. Number of successful operations.
+ * @typedef {number} ApplyThingsResult
+ */
+
+/**
+ * Result for `tailLog` RPC method.
+ * @typedef {LogEntry[]} TailLogResult
+ */
+
+/**
+ * Result for `getHistoricalLogs` RPC method. Discriminated by `req.logType`:
+ * `'alerts'` yields HistoricalAlert entries, `'info'` yields HistoricalInfoChange
+ * entries. Emitted as `oneOf` in the OpenRPC output.
+ * @typedef {HistoricalAlert[] | HistoricalInfoChange[]} GetHistoricalLogsResult
+ */
+
+/**
+ * Result for `getReplicaConf` RPC method.
+ * @typedef {ReplicaConf} GetReplicaConfResult
+ */
+
+/**
+ * Result for `rackReboot` RPC method. Returns 1 immediately (process exits
+ * asynchronously).
+ * @typedef {number} RackRebootResult
+ */
+
+/**
+ * Result for `getWrkExtData` RPC method. Extended worker data, extensible by
+ * subclasses via `_getWrkExtData`. Shape is deployment-specific.
+ * @typedef {Object} GetWrkExtDataResult
+ */
+
+/**
+ * Result for `getWrkConf` RPC method. Global configuration object (or a
+ * projected subset when `req.fields` is supplied). Shape is deployment-specific.
+ * @typedef {Object} GetWrkConfResult
+ */
+
+/**
+ * Result for `getThingConf` RPC method. For `requestType: 'nextAvailableCode'`
+ * the result is the next available thing code string.
+ * @typedef {string} GetThingConfResult
+ */
+
+/**
+ * Result for `getWrkSettings` RPC method.
+ * @typedef {WrkSettings} GetWrkSettingsResult
+ */
+
+/**
+ * Result for `saveWrkSettings` RPC method. Polymorphic: passes through the
+ * underlying settings-save facility, whose return shape varies. Intentionally
+ * untyped.
+ * @typedef {*} SaveWrkSettingsResult
+ */
+
+// =============================================================================
 // Error Codes
 // =============================================================================
 

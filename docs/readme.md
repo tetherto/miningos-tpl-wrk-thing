@@ -30,7 +30,7 @@ The generated `openrpc.json` is a standard OpenRPC document that can be consumed
 
 ### Step 1: JSDoc annotations (source of truth)
 
-Type definitions are written as JSDoc `@typedef` in [`workers/lib/types.js`](../workers/lib/types.js):
+Every RPC method has two named typedefs in [`workers/lib/types.js`](../workers/lib/types.js) — one for its request shape and one for its response shape — following the naming convention `<Method>Params` and `<Method>Result`:
 
 ```javascript
 /**
@@ -40,9 +40,34 @@ Type definitions are written as JSDoc `@typedef` in [`workers/lib/types.js`](../
  * @property {ThingOpts} opts - Device connection options (required)
  * @property {ThingInfo} [info] - Device metadata
  */
+
+/**
+ * Result for `registerThing` RPC method. Returns 1 on success.
+ * @typedef {number} RegisterThingResult
+ */
 ```
 
-RPC methods are annotated in [`workers/rack.thing.wrk.js`](../workers/rack.thing.wrk.js):
+`Result` typedefs are almost always thin aliases. Reuse existing entity typedefs (`Thing`, `Rack`, `LogEntry`, `ReplicaConf`, ...) wherever possible:
+
+```javascript
+/** @typedef {Rack} GetRackResult */
+/** @typedef {Thing[]} ListThingsResult */
+/** @typedef {LogEntry[]} TailLogResult */
+/** @typedef {HistoricalAlert[] | HistoricalInfoChange[]} GetHistoricalLogsResult */
+```
+
+For methods whose response shape is legitimately caller-dependent (`queryThing` dispatches to a controller; `saveWrkSettings` passes through to a facility), use the explicit any escape hatch with a description explaining why:
+
+```javascript
+/**
+ * Polymorphic: the `method` parameter dispatches to a controller method on
+ * the target thing, so the response shape depends entirely on that controller.
+ * Intentionally untyped.
+ * @typedef {*} QueryThingResult
+ */
+```
+
+RPC methods are annotated in [`workers/rack.thing.wrk.js`](../workers/rack.thing.wrk.js) with `@param`, `@returns`, and `@throws`:
 
 ```javascript
 /**
@@ -55,6 +80,12 @@ RPC methods are annotated in [`workers/rack.thing.wrk.js`](../workers/rack.thing
  */
 async registerThing(req) { ... }
 ```
+
+The handler's `@returns` is for IDE / reader consumption; the OpenRPC result schema is generated from the named `<Method>Result` typedef, not the `@returns` tag.
+
+> Steps 2–4 below are what the `npm run openrpc:generate` command runs under the hood. 
+> You don't invoke `tsc` or `ts-json-schema-generator` yourself — the generator script does that. 
+> The raw commands are shown for reference so you can reason about failures.
 
 ### Step 2: TypeScript declaration generation
 
@@ -80,9 +111,21 @@ This produces JSON Schema with full type information, descriptions, and required
 
 The generator script ([`scripts/generate-openrpc.js`](../scripts/generate-openrpc.js)) combines all schemas into a valid OpenRPC document:
 
-- Maps each RPC method to its parameter type
+- Maps each RPC method to BOTH its parameter type (`PARAM_MAP`) and its result type (`RESULT_MAP`)
 - Fixes `$ref` paths from JSON Schema format (`#/definitions/`) to OpenRPC format (`#/components/schemas/`)
 - Assembles the final [`openrpc.json`](openrpc.json)
+
+The generator **fails hard** (exit 1) if any method is missing a `RESULT_MAP` entry, or if its `<Method>Result` typedef cannot be extracted by `ts-json-schema-generator`. This is intentional: a silent `{}` result schema is worse than a broken build, because consumers downstream (docs site, client generators) cannot tell the difference between "intentionally polymorphic" and "developer forgot to annotate". Use `@typedef {*} <Method>Result` with a description to declare polymorphism explicitly.
+
+Union result typedefs (e.g. `HistoricalAlert[] | HistoricalInfoChange[]`) are emitted as `anyOf` in the resulting schema — semantically valid OpenRPC and handled by standard tooling.
+
+Run the full generation pipeline (steps 2–4) with:
+
+```bash
+npm run openrpc:generate
+```
+
+This refreshes [`docs/openrpc.json`](openrpc.json) in place. Commit the result alongside the code change that triggered it.
 
 ### Step 5: Validation
 
@@ -93,16 +136,6 @@ npm run openrpc:validate
 ```
 
 This catches structural errors, missing required fields, and schema violations.
-
-## Commands
-
-```bash
-# Generate the OpenRPC spec
-npm run openrpc:generate
-
-# Validate the spec
-npm run openrpc:validate
-```
 
 ## Files
 
@@ -126,12 +159,14 @@ npm run openrpc:validate
 
 ## Adding or modifying methods
 
-1. Add JSDoc `@typedef` for parameters in [`workers/lib/types.js`](../workers/lib/types.js)
-2. Add JSDoc annotations to the method in [`workers/rack.thing.wrk.js`](../workers/rack.thing.wrk.js)
-3. Add the method-to-type mapping in [`scripts/generate-openrpc.js`](../scripts/generate-openrpc.js) (`PARAM_MAP`)
-4. Run `npm run openrpc:generate && npm run openrpc:validate`
-5. Commit both the source changes and the updated [`openrpc.json`](openrpc.json)
-6. Notify the documentation site maintainers that the spec has been updated
+1. In [`workers/lib/types.js`](../workers/lib/types.js), add the request typedef `<Method>Params` (and any nested typedefs it references).
+2. In the same file, add the response typedef `<Method>Result`. Prefer aliasing an existing entity typedef (`Thing`, `Rack`, `LogEntry`, ...) over re-declaring the shape. For intentionally polymorphic methods, use `@typedef {*} <Method>Result` and include a description explaining why.
+3. In [`workers/rack.thing.wrk.js`](../workers/rack.thing.wrk.js), annotate the handler with `@param` / `@returns` / `@throws` — this is for IDE and human readers; the spec itself is generated from the named typedefs above.
+4. Register the method in `RPC_METHODS` in [`workers/lib/constants.js`](../workers/lib/constants.js).
+5. Add entries to BOTH `PARAM_MAP` and `RESULT_MAP` in [`scripts/generate-openrpc.js`](../scripts/generate-openrpc.js). The generator fails CI if either is missing.
+6. Run `npm run openrpc:generate && npm run openrpc:validate` locally.
+7. Commit source changes alongside the refreshed [`openrpc.json`](openrpc.json) in the same PR — the drift check in [`.github/workflows/openrpc.yml`](../.github/workflows/openrpc.yml) will otherwise block the merge.
+8. Notify the documentation site maintainers that the spec has been updated.
 
 ## Why this approach?
 
