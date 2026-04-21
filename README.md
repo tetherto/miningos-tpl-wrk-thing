@@ -223,10 +223,14 @@ Periodic data collection from devices:
 
 ## API Reference
 
+[**Browse the API apec in the OpenRPC Playground**](https://playground.open-rpc.org/?url=https://raw.githubusercontent.com/tetherto/miningos-tpl-wrk-thing/main/docs/openrpc.json) — interactive view of methods, parameters, results, and schemas pulled live from `main`.
+
+> This link only works on main branch, swap main for your branch name to preview
+
 The API is documented via [`docs/openrpc.json`](docs/openrpc.json), generated from JSDoc annotations. Add `@typedef` in [`workers/lib/types.js`](workers/lib/types.js) for types and annotate methods in [`workers/rack.thing.wrk.js`](workers/rack.thing.wrk.js) with `@param`, `@returns`, and `@throws`. Then run:
 
 ```bash
 npm run openrpc:generate && npm run openrpc:validate
 ```
 
-The JSON spec can be consumed by documentation systems to produce user-facing API docs. [Learn more about the API specification tooling](docs/readme.md).
+[Learn more about the API specification tooling](docs/readme.md).

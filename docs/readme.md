@@ -1,5 +1,7 @@
 # OpenRPC specification generation
 
+[**Browse the API in the OpenRPC Playground**](https://playground.open-rpc.org/?url=https://raw.githubusercontent.com/tetherto/miningos-tpl-wrk-thing/main/docs/openrpc.json) — interactive single-page view of methods, parameters, results, and schemas pulled live from `main`.
+
 This document describes how the OpenRPC specification is generated from the codebase.
 
 ## Quick reference
@@ -83,9 +85,7 @@ async registerThing(req) { ... }
 
 The handler's `@returns` is for IDE / reader consumption; the OpenRPC result schema is generated from the named `<Method>Result` typedef, not the `@returns` tag.
 
-> Steps 2–4 below are what the `npm run openrpc:generate` command runs under the hood. 
-> You don't invoke `tsc` or `ts-json-schema-generator` yourself — the generator script does that. 
-> The raw commands are shown for reference so you can reason about failures.
+> Steps 2–4 below are what the `npm run openrpc:generate` command runs under the hood. You don't invoke `tsc` or `ts-json-schema-generator` yourself — the generator script does that. The raw commands are shown for reference so you can reason about failures.
 
 ### Step 2: TypeScript declaration generation
 
@@ -113,6 +113,7 @@ The generator script ([`scripts/generate-openrpc.js`](../scripts/generate-openrp
 
 - Maps each RPC method to BOTH its parameter type (`PARAM_MAP`) and its result type (`RESULT_MAP`)
 - Fixes `$ref` paths from JSON Schema format (`#/definitions/`) to OpenRPC format (`#/components/schemas/`)
+- Strips the leading ` - ` JSDoc separator from `description` fields (an artifact of `tsc` preserving the conventional `@property {T} name - description` form verbatim; devs keep writing the conventional style, the generator cleans the output)
 - Assembles the final [`openrpc.json`](openrpc.json)
 
 The generator **fails hard** (exit 1) if any method is missing a `RESULT_MAP` entry, or if its `<Method>Result` typedef cannot be extracted by `ts-json-schema-generator`. This is intentional: a silent `{}` result schema is worse than a broken build, because consumers downstream (docs site, client generators) cannot tell the difference between "intentionally polymorphic" and "developer forgot to annotate". Use `@typedef {*} <Method>Result` with a description to declare polymorphism explicitly.
@@ -136,6 +137,16 @@ npm run openrpc:validate
 ```
 
 This catches structural errors, missing required fields, and schema violations.
+
+## Commands
+
+```bash
+# Generate the OpenRPC spec
+npm run openrpc:generate
+
+# Validate the spec
+npm run openrpc:validate
+```
 
 ## Files
 
@@ -165,7 +176,7 @@ This catches structural errors, missing required fields, and schema violations.
 4. Register the method in `RPC_METHODS` in [`workers/lib/constants.js`](../workers/lib/constants.js).
 5. Add entries to BOTH `PARAM_MAP` and `RESULT_MAP` in [`scripts/generate-openrpc.js`](../scripts/generate-openrpc.js). The generator fails CI if either is missing.
 6. Run `npm run openrpc:generate && npm run openrpc:validate` locally.
-7. Commit source changes alongside the refreshed [`openrpc.json`](openrpc.json) in the same PR — the drift check in [`.github/workflows/openrpc.yml`](../.github/workflows/openrpc.yml) will otherwise block the merge.
+7. Commit source changes alongside the refreshed [`openrpc.json`](openrpc.json) in the same PR. Once the proposed workflow (see [CI integration](#ci-integration)) is installed by DevOps, the drift check will block the merge if the spec isn't refreshed.
 8. Notify the documentation site maintainers that the spec has been updated.
 
 ## Why this approach?
@@ -179,13 +190,55 @@ This catches structural errors, missing required fields, and schema violations.
 
 ## CI integration
 
-The GitHub workflow ([`.github/workflows/openrpc.yml`](../.github/workflows/openrpc.yml)) regenerates and validates the spec on PRs to `main`:
+A GitHub Actions workflow is required to regenerate and validate the spec on every pull request, and to fail the build if the committed `docs/openrpc.json` drifts from what the current code would produce. The workflow is intentionally NOT committed under `.github/workflows/` from this PR — `.github/` is DevOps territory. The proposed workflow is documented below for DevOps to review, adapt, and install.
 
-1. Run `npm run openrpc:generate`
-2. Run `npm run openrpc:validate`
-3. Check that `docs/openrpc.json` matches the committed version
+The workflow must do three things:
 
-The PR fails if validation fails or if the generated spec differs from what's committed.
+1. Run `npm run openrpc:generate` to regenerate [`openrpc.json`](openrpc.json) from current code.
+2. Run `npm run openrpc:validate` to confirm the spec conforms to the OpenRPC meta-schema.
+3. Fail if the regenerated spec differs from the committed one, forcing the PR author to commit the updated spec.
+
+**`.github/workflows/openrpc.yml`** (proposed)
+
+```yaml
+# Validates OpenRPC specification on pull requests
+# Fails if spec is invalid or generated file is out of sync
+
+name: OpenRPC
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - run: npm ci
+
+      - run: npm run openrpc:generate
+      - run: npm run openrpc:validate
+
+      - name: Check for uncommitted changes
+        run: |
+          git diff --exit-code docs/openrpc.json || \
+            (echo "Generated spec is out of sync. Run 'npm run openrpc:generate' locally and commit the updated openrpc.json." && exit 1)
+```
+
+### Follow-up hardening (for DevOps consideration)
+
+The block above is the minimum viable workflow. Before landing it, DevOps may want to:
+
+- Add a `paths:` filter so the job only runs when relevant files change: `workers/**`, `scripts/generate-openrpc.js`, `scripts/validate-openrpc.js`, `docs/openrpc.json`, `package*.json`.
+- Enable npm cache on `setup-node@v4` via `cache: 'npm'`, or reuse the existing composite actions at [`.github/actions/node-setup-cache`](../.github/actions/node-setup-cache) and [`.github/actions/node-restore-cache`](../.github/actions/node-restore-cache) for consistency with the rest of CI.
+- Add a `push: { branches: [main] }` trigger as a belt-and-braces against admin-bypass merges silently drifting `main`.
+- On drift-check failure, upload the regenerated `docs/openrpc.json` as a workflow artifact so authors can download and commit it without re-running the generator locally.
+- Add a branch-protection rule requiring this check to pass before merging to `main`.
 
 ## Notes
 

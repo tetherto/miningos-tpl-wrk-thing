@@ -76,6 +76,24 @@ function fixRefs (obj) {
   return result
 }
 
+// `tsc` preserves the conventional JSDoc ` - description` separator literally
+// in emitted `.d.ts` comments, which `ts-json-schema-generator` then surfaces
+// as `description: "- <text>"`. Strip that leading separator so schema
+// descriptions read cleanly in consumers (docs site, client generators).
+function stripDescDash (obj) {
+  if (!obj || typeof obj !== 'object') return obj
+  if (Array.isArray(obj)) return obj.map(stripDescDash)
+  const out = {}
+  for (const [k, v] of Object.entries(obj)) {
+    if (k === 'description' && typeof v === 'string' && v.startsWith('- ')) {
+      out[k] = v.slice(2).trim()
+    } else {
+      out[k] = stripDescDash(v)
+    }
+  }
+  return out
+}
+
 // Extracts a JSON Schema for the named TypeScript type.
 // - Inlines any referenced `definitions` into the shared `schemas` bag.
 // - Hard-fails (exit 1) when strict=true and the type cannot be extracted.
@@ -142,8 +160,8 @@ const methods = RPC_METHODS.map(name => {
   }
 })
 
-// Fix all $ref paths in schemas
-const fixedSchemas = fixRefs(schemas)
+// Fix all $ref paths and strip conventional JSDoc `- ` separators from descriptions
+const fixedSchemas = stripDescDash(fixRefs(schemas))
 
 const doc = {
   openrpc: '1.4.1',
