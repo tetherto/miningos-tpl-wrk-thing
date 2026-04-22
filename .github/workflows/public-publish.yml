@@ -1,0 +1,48 @@
+# Add to each OSS repo as .github/workflows/public-publish.yml
+#
+# Publishing uses npm Trusted Publishing (OIDC) — no NPM_TOKEN / NODE_AUTH_TOKEN
+# for the publish step. Configure the package on https://www.npmjs.com/:
+#   Package → Settings → Trusted publishing → GitHub Actions
+#   - Repository (must match package.json repository.url)
+#   - Workflow filename: public-publish.yml (exact match, case-sensitive)
+#   - Environment (optional): if this job uses `environment: release`, set the same on npm
+#
+# Requires GitHub-hosted runners, id-token: write, Node >= 22.14 and npm >= 11.5.1.
+# See https://docs.npmjs.com/trusted-publishers
+name: Release to public npm
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+jobs:
+  approve-release:
+    if: "${{ github.event.pull_request.merged == true && startsWith(github.event.pull_request.title, 'Release: ') }}"
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        with:
+          # lts/* = current Node LTS on the runner (same line as `lts/*` elsewhere). npm trusted publishing needs Node >= 22.14 + npm >= 11.5.1 — satisfied by current LTS.
+          node-version: lts/*
+          registry-url: 'https://registry.npmjs.org'
+      - name: Tag release and publish to npm (OIDC)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          VERSION=$(node -p "require('./package.json').version")
+          npm version "$VERSION" --no-git-tag-version --allow-same-version
+          if ! git ls-remote --tags origin | grep -q "refs/tags/v$VERSION$"; then
+            git tag "v$VERSION"
+            git push origin "v$VERSION"
+          fi
+          # Publish authenticates via OIDC when NODE_AUTH_TOKEN is unset (trusted publisher on npmjs.com).
+          # Provenance is generated automatically for eligible public repos — no --provenance flag needed.
+          npm publish --access public --tag latest --ignore-scripts
