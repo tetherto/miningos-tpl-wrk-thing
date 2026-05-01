@@ -1,5 +1,5 @@
-const utilsStore = require('hp-svc-facs-store/utils')
-const gLibStats = require('miningos-lib-stats')
+const utilsStore = require('@tetherto/hp-svc-facs-store/utils')
+const gLibStats = require('@tetherto/miningos-lib-stats')
 const lWrkFunLogs = require('./wrk-fun-logs')
 
 function aggrStats (thgIds, opts = {}, thgs = null) {

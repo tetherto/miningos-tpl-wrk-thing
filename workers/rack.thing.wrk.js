@@ -1,14 +1,14 @@
 'use strict'
 
 const async = require('async')
-const TetherWrkBase = require('tether-wrk-base/workers/base.wrk.tether')
+const TetherWrkBase = require('@tetherto/tether-wrk-base/workers/base.wrk.tether')
 const debug = require('debug')('thing:proc')
 const { v4: uuidv4 } = require('uuid')
-const utilsStore = require('hp-svc-facs-store/utils')
+const utilsStore = require('@tetherto/hp-svc-facs-store/utils')
 const mingo = require('mingo')
-const gLibStats = require('miningos-lib-stats')
-const gLibUtilBase = require('lib-js-util-base')
-const { promiseTimeout } = require('lib-js-util-promise')
+const gLibStats = require('@tetherto/miningos-lib-stats')
+const gLibUtilBase = require('@bitfinex/lib-js-util-base')
+const { promiseTimeout } = require('@bitfinex/lib-js-util-promise')
 const lWrkFunStats = require('./lib/wrk-fun-stats')
 const lWrkFunAlerts = require('./lib/wrk-fun-alerts')
 const lWrkFunLogs = require('./lib/wrk-fun-logs')
@@ -83,13 +83,13 @@ class WrkProcVar extends TetherWrkBase {
     this.rackId = `${this.getThingType()}-${ctx.rack}`
 
     this.setInitFacs([
-      ['fac', 'bfx-facs-interval', '0', '0', {}, -10],
-      ['fac', 'bfx-facs-scheduler', '0', '0', {}, -10],
-      ['fac', 'hp-svc-facs-store', 's1', 's1', {
+      ['fac', '@bitfinex/bfx-facs-interval', '0', '0', {}, -10],
+      ['fac', '@bitfinex/bfx-facs-scheduler', '0', '0', {}, -10],
+      ['fac', '@tetherto/hp-svc-facs-store', 's1', 's1', {
         storePrimaryKey: this.ctx.storePrimaryKey,
         storeDir: `store/${this.ctx.rack}-db`
       }, -5],
-      ['fac', 'svc-facs-miningos-thg-write-calls', '0', '0', { maxParallelWriteValidations: 5 }, 20]
+      ['fac', '@tetherto/svc-facs-miningos-thg-write-calls', '0', '0', { maxParallelWriteValidations: 5 }, 20]
     ])
 
     this.mem = {

@@ -2,7 +2,7 @@
 
 const { getLogMaxHeight } = require('./utils')
 const lWrkFunReplica = require('./wrk-fun-replica')
-const utilsStore = require('hp-svc-facs-store/utils')
+const utilsStore = require('@tetherto/hp-svc-facs-store/utils')
 
 function getLogName (n) {
   return n + '-5'
