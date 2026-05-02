@@ -4,7 +4,7 @@ const test = require('brittle')
 const fs = require('fs')
 const { readdir, stat } = require('fs/promises')
 const { join } = require('path')
-const StoreFacility = require('hp-svc-facs-store')
+const StoreFacility = require('@tetherto/hp-svc-facs-store')
 const {
   rotateLogs,
   getBeeTimeLog,
@@ -12,7 +12,7 @@ const {
   refreshLogsCache,
   saveLogData
 } = require('../../workers/lib/wrk-fun-logs')
-const utilsStore = require('hp-svc-facs-store/utils')
+const utilsStore = require('@tetherto/hp-svc-facs-store/utils')
 const { getLogMaxHeight } = require('../../workers/lib/utils')
 
 const storeDir = 'tests/store'

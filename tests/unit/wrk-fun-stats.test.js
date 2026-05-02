@@ -64,13 +64,13 @@ test('wrk-fun-stats: aggrStats with valid specs and things', async t => {
   }
 
   // Mock gLibStats.applyStats and tallyStats
-  const originalApplyStats = require('miningos-lib-stats').applyStats
-  const originalTallyStats = require('miningos-lib-stats').tallyStats
+  const originalApplyStats = require('@tetherto/miningos-lib-stats').applyStats
+  const originalTallyStats = require('@tetherto/miningos-lib-stats').tallyStats
 
-  require('miningos-lib-stats').applyStats = (state, acc, data, meta) => {
+  require('@tetherto/miningos-lib-stats').applyStats = (state, acc, data, meta) => {
     acc.test = (acc.test || 0) + 1
   }
-  require('miningos-lib-stats').tallyStats = (state, acc) => {
+  require('@tetherto/miningos-lib-stats').tallyStats = (state, acc) => {
     acc.tally = true
   }
 
@@ -81,8 +81,8 @@ test('wrk-fun-stats: aggrStats with valid specs and things', async t => {
   t.ok(result.tally)
 
   // Restore original functions
-  require('miningos-lib-stats').applyStats = originalApplyStats
-  require('miningos-lib-stats').tallyStats = originalTallyStats
+  require('@tetherto/miningos-lib-stats').applyStats = originalApplyStats
+  require('@tetherto/miningos-lib-stats').tallyStats = originalTallyStats
 })
 
 test('wrk-fun-stats: aggrStats with things parameter', async t => {

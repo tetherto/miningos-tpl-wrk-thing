@@ -4,7 +4,7 @@
  * Extracts types via TypeScript, converts to JSON Schema, assembles OpenRPC doc.
  * Run: npm run openrpc:generate
  */
-const { execSync } = require('child_process')
+const { execFileSync } = require('child_process')
 const fs = require('fs')
 const path = require('path')
 
@@ -101,8 +101,11 @@ function stripDescDash (obj) {
 //   CI instead of silently emitting `{}`.
 function extractSchema (typeName, schemas, { strict = false } = {}) {
   try {
-    const cmd = `npx ts-json-schema-generator -p ${TYPES_DIR}/types.d.ts -t ${typeName} --no-top-ref`
-    const out = execSync(cmd, { cwd: ROOT, encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] })
+    const out = execFileSync(
+      'npx',
+      ['ts-json-schema-generator', '-p', `${TYPES_DIR}/types.d.ts`, '-t', typeName, '--no-top-ref'],
+      { cwd: ROOT, encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] }
+    )
     const s = JSON.parse(out)
     if (s.definitions) Object.assign(schemas, s.definitions)
     delete s.definitions
@@ -124,8 +127,11 @@ console.log('OpenRPC Generator\n')
 
 if (!fs.existsSync(TYPES_DIR)) fs.mkdirSync(TYPES_DIR, { recursive: true })
 console.log('-> Generating .d.ts from JSDoc...')
-execSync(`npx tsc ${TYPES_JS} --declaration --allowJs --emitDeclarationOnly --outDir ${TYPES_DIR}`,
-  { cwd: ROOT, stdio: 'inherit' })
+execFileSync(
+  'npx',
+  ['tsc', TYPES_JS, '--declaration', '--allowJs', '--emitDeclarationOnly', '--outDir', TYPES_DIR],
+  { cwd: ROOT, stdio: 'inherit' }
+)
 
 console.log('-> Extracting schemas...')
 const schemas = {}
