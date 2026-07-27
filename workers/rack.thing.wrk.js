@@ -94,6 +94,7 @@ class WrkProcVar extends TetherWrkBase {
 
     this.mem = {
       things: {},
+      reservedCodes: new Set(),
       log: {},
       log_cache: {},
       log_map: {},
@@ -142,7 +143,7 @@ class WrkProcVar extends TetherWrkBase {
       case 'registerThing':
         return { thingId: req.id, code: req.code }
       case 'updateThing':
-        return { forceOverwrite: !!req.forceOverwrite, actionId: req.actionId }
+        return { forceOverwrite: !!req.forceOverwrite, actionId: req.actionId, ...(req.code ? { code: req.code } : {}) }
       case 'saveThingComment':
         return { thingId: req.thingId }
       case 'editThingComment':
@@ -505,6 +506,8 @@ class WrkProcVar extends TetherWrkBase {
 
     // remove pos and container tags before re-creating
     tags = tags.filter(val => !val.includes('pos-') && !val.includes('container-'))
+    // drop code tags that no longer match the current code
+    tags = tags.filter(val => !val.startsWith('code-') || val === `code-${thg.code}`)
     if (thg.info?.pos) tags.push(`pos-${thg.info.pos}`)
     if (thg.info?.container) tags.push(`container-${thg.info.container}`)
 
@@ -524,7 +527,13 @@ class WrkProcVar extends TetherWrkBase {
   }
 
   _validateUpdateThing (data) {
-    // no op
+    if (!data.code) return
+    if (!(/-\d+$/.test(data.code))) {
+      throw new Error('ERR_THING_CODE_INVALID')
+    }
+    if (Object.values(this.mem.things).some(thg => thg.id !== data.id && thg.code === data.code)) {
+      throw new Error('ERR_THING_WITH_CODE_ALREADY_EXISTS')
+    }
   }
 
   _generateThingId () {
@@ -532,9 +541,12 @@ class WrkProcVar extends TetherWrkBase {
   }
 
   _getMaxThingCode () {
-    const things = Object.values(this.mem.things).filter(thg => thg.code)
-    return things.reduce((acc, cur) => {
-      const code = parseInt(cur.code.split('-').pop(), 10) || 0
+    const codes = Object.values(this.mem.things)
+      .map(thg => thg.code)
+      .concat([...(this.mem.reservedCodes || [])])
+      .filter(Boolean)
+    return codes.reduce((acc, cur) => {
+      const code = parseInt(cur.split('-').pop(), 10) || 0
       return Math.max(acc, code)
     }, 0)
   }
@@ -544,6 +556,20 @@ class WrkProcVar extends TetherWrkBase {
     const last = this._getMaxThingCode()
     const nextCode = (seed ?? (last + 1)).toString().padStart(4, '0')
     return `${prefix}-${nextCode}`
+  }
+
+  _reserveThingCode (code) {
+    if (!this.mem.reservedCodes) {
+      this.mem.reservedCodes = new Set()
+    }
+    if (this.mem.reservedCodes.has(code)) {
+      throw new Error('ERR_THING_WITH_CODE_ALREADY_EXISTS')
+    }
+    this.mem.reservedCodes.add(code)
+  }
+
+  _releaseThingCode (code) {
+    this.mem.reservedCodes?.delete(code)
   }
 
   async _assignCodesToThings () {
@@ -632,15 +658,23 @@ class WrkProcVar extends TetherWrkBase {
 
     const createdAt = Date.now()
     info = { ...info, createdAt, updatedAt: createdAt }
-    const thg = await this._registerAndStoreThing({
-      id: req.id,
-      opts: req.opts,
-      info,
-      tags: req.tags,
-      code: req.code,
-      comments
-    })
-    await this.setupThing(thg)
+
+    const code = req.code ?? this._generateThingCode(req)
+    this._reserveThingCode(code)
+
+    try {
+      const thg = await this._registerAndStoreThing({
+        id: req.id,
+        opts: req.opts,
+        info,
+        tags: req.tags,
+        code,
+        comments
+      })
+      await this.setupThing(thg)
+    } finally {
+      this._releaseThingCode(code)
+    }
 
     return 1
   }
@@ -657,6 +691,7 @@ class WrkProcVar extends TetherWrkBase {
    * @memberof WrkProcVar
    * @param {Object} req - Request parameters
    * @param {string} req.id - Device ID (required)
+   * @param {string} [req.code] - New device code (format: TYPE-NNNN, must be unique)
    * @param {Object} [req.opts] - Updated connection options (merged with existing unless forceOverwrite)
    * @param {Object} [req.info] - Updated metadata (merged with existing unless forceOverwrite)
    * @param {string[]} [req.tags] - Updated tags
@@ -667,6 +702,8 @@ class WrkProcVar extends TetherWrkBase {
    * @returns {Promise<number>} Returns 1 on success
    * @throws {Error} ERR_SLAVE_BLOCK - Operation blocked on slave/replica nodes
    * @throws {Error} ERR_THING_NOTFOUND - Thing with specified ID not found
+   * @throws {Error} ERR_THING_WITH_CODE_ALREADY_EXISTS - Another thing already has this code
+   * @throws {Error} ERR_THING_CODE_INVALID - Code format invalid (must end with -NNNN)
    */
   async updateThing (req) {
     if (this.ctx.slave) {
@@ -676,11 +713,27 @@ class WrkProcVar extends TetherWrkBase {
     this._validateThingExists(req.id)
     this._validateUpdateThing(req)
 
+    if (req.code) {
+      this._reserveThingCode(req.code)
+    }
+
+    try {
+      return await this._updateThing(req)
+    } finally {
+      if (req.code) {
+        this._releaseThingCode(req.code)
+      }
+    }
+  }
+
+  async _updateThing (req) {
     let thg = await this.things.get(req.id)
     thg = JSON.parse(thg.value.toString())
     const thgPrev = { opts: { ...thg.opts }, info: { ...thg.info }, tags: [...thg.tags] }
 
-    if (!thg.code) {
+    if (req.code) {
+      thg.code = req.code
+    } else if (!thg.code) {
       thg.code = this._generateThingCode(thg)
     }
 
