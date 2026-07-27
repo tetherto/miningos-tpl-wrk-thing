@@ -2063,3 +2063,195 @@ test('WrkProcVar: _start audit rpc handler delegates to handleRpcReply', async t
   await rpcHandlers.registerThing({ id: 't1', opts: { host: 'h' } })
   t.ok(audited)
 })
+
+test('WrkProcVar: _getMaxThingCode includes reserved codes', async t => {
+  const w = protoWorker()
+  w.mem.things = { t1: { code: 'THING-0002' } }
+  w._reserveThingCode('THING-0007')
+  t.is(w._getMaxThingCode(), 7)
+  t.is(w._generateThingCode({}), 'THING-0008')
+  w._releaseThingCode('THING-0007')
+  t.is(w._getMaxThingCode(), 2)
+})
+
+test('WrkProcVar: _reserveThingCode rejects an already reserved code', async t => {
+  const w = protoWorker()
+  w._reserveThingCode('THING-0001')
+  try {
+    w._reserveThingCode('THING-0001')
+    t.fail()
+  } catch (e) {
+    t.is(e.message, 'ERR_THING_WITH_CODE_ALREADY_EXISTS')
+  }
+})
+
+test('WrkProcVar: registerThing concurrent auto-generated codes are unique', async t => {
+  const w = protoWorker()
+  w.ctx.slave = false
+  w._storeThingDb = async () => {}
+  w.setupThing = async (thg) => {
+    await new Promise(resolve => setImmediate(resolve))
+    w.mem.things[thg.id] = thg
+    return 1
+  }
+
+  await Promise.all([
+    w.registerThing({ opts: {} }),
+    w.registerThing({ opts: {} }),
+    w.registerThing({ opts: {} })
+  ])
+
+  const codes = Object.values(w.mem.things).map(thg => thg.code).sort()
+  t.alike(codes, ['THING-0001', 'THING-0002', 'THING-0003'])
+  t.is(w.mem.reservedCodes.size, 0)
+})
+
+test('WrkProcVar: registerThing rejects concurrent duplicate provided code', async t => {
+  const w = protoWorker()
+  w.ctx.slave = false
+  w._storeThingDb = async () => {}
+  w.setupThing = async (thg) => {
+    await new Promise(resolve => setImmediate(resolve))
+    w.mem.things[thg.id] = thg
+    return 1
+  }
+
+  const results = await Promise.allSettled([
+    w.registerThing({ opts: {}, code: 'THING-0007' }),
+    w.registerThing({ opts: {}, code: 'THING-0007' })
+  ])
+
+  t.is(results.filter(r => r.status === 'fulfilled').length, 1)
+  const rejected = results.find(r => r.status === 'rejected')
+  t.is(rejected.reason.message, 'ERR_THING_WITH_CODE_ALREADY_EXISTS')
+  t.is(Object.keys(w.mem.things).length, 1)
+})
+
+test('WrkProcVar: registerThing releases reserved code on failure', async t => {
+  const w = protoWorker()
+  w.ctx.slave = false
+  w._storeThingDb = async () => { throw new Error('boom') }
+
+  try {
+    await w.registerThing({ opts: {} })
+    t.fail()
+  } catch (e) {
+    t.is(e.message, 'boom')
+  }
+
+  t.is(w.mem.reservedCodes.size, 0)
+  t.is(w._generateThingCode({}), 'THING-0001')
+})
+
+function updateWorker (db) {
+  const w = protoWorker()
+  const store = { db }
+  w.ctx.slave = false
+  w.mem.things = {
+    [db.id]: { ...JSON.parse(JSON.stringify(db)), last: {} }
+  }
+  w.things = {
+    get: async () => ({ value: Buffer.from(JSON.stringify(store.db)) }),
+    put: async (_id, buf) => {
+      store.db = JSON.parse(buf.toString())
+    }
+  }
+  w.updateThingHook0 = async () => {}
+  w.reconnectThing = async () => {}
+  return { w, store }
+}
+
+test('WrkProcVar: updateThing changes code and refreshes code tag', async t => {
+  const { w, store } = updateWorker({
+    id: 't1',
+    code: 'THING-0001',
+    opts: {},
+    info: {},
+    tags: ['id-t1', 'code-THING-0001'],
+    comments: []
+  })
+  w.mem.things.t2 = { id: 't2', code: 'THING-0002' }
+
+  await w.updateThing({ id: 't1', code: 'THING-0005' })
+
+  t.is(store.db.code, 'THING-0005')
+  t.is(w.mem.things.t1.code, 'THING-0005')
+  t.ok(store.db.tags.includes('code-THING-0005'))
+  t.absent(store.db.tags.includes('code-THING-0001'))
+  t.is(w.mem.reservedCodes.size, 0)
+  t.is(w.mem.nextAvailableCode, 'THING-0006')
+})
+
+test('WrkProcVar: updateThing rejects duplicate code', async t => {
+  const { w } = updateWorker({
+    id: 't1',
+    code: 'THING-0001',
+    opts: {},
+    info: {},
+    tags: ['id-t1', 'code-THING-0001'],
+    comments: []
+  })
+  w.mem.things.t2 = { id: 't2', code: 'THING-0002' }
+
+  try {
+    await w.updateThing({ id: 't1', code: 'THING-0002' })
+    t.fail()
+  } catch (e) {
+    t.is(e.message, 'ERR_THING_WITH_CODE_ALREADY_EXISTS')
+  }
+  t.is(w.mem.things.t1.code, 'THING-0001')
+})
+
+test('WrkProcVar: updateThing rejects invalid code format', async t => {
+  const { w } = updateWorker({
+    id: 't1',
+    code: 'THING-0001',
+    opts: {},
+    info: {},
+    tags: ['id-t1', 'code-THING-0001'],
+    comments: []
+  })
+
+  try {
+    await w.updateThing({ id: 't1', code: 'BAD' })
+    t.fail()
+  } catch (e) {
+    t.is(e.message, 'ERR_THING_CODE_INVALID')
+  }
+})
+
+test('WrkProcVar: updateThing accepts own current code', async t => {
+  const { w, store } = updateWorker({
+    id: 't1',
+    code: 'THING-0001',
+    opts: {},
+    info: {},
+    tags: ['id-t1', 'code-THING-0001'],
+    comments: []
+  })
+
+  await w.updateThing({ id: 't1', code: 'THING-0001', info: { a: 1 } })
+
+  t.is(store.db.code, 'THING-0001')
+  t.is(store.db.info.a, 1)
+  t.is(w.mem.reservedCodes.size, 0)
+})
+
+test('WrkProcVar: updateThing rejects concurrent duplicate code assignment', async t => {
+  const { w } = updateWorker({
+    id: 't1',
+    code: 'THING-0001',
+    opts: {},
+    info: {},
+    tags: ['id-t1', 'code-THING-0001'],
+    comments: []
+  })
+  w._reserveThingCode('THING-0009')
+
+  try {
+    await w.updateThing({ id: 't1', code: 'THING-0009' })
+    t.fail()
+  } catch (e) {
+    t.is(e.message, 'ERR_THING_WITH_CODE_ALREADY_EXISTS')
+  }
+})
