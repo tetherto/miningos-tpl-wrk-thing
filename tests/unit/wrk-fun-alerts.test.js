@@ -389,6 +389,45 @@ test('wrk-fun-alerts: object match supports per-alert description override', asy
   t.is(result[1].description, 'base description', 'falls back to config description')
 })
 
+test('wrk-fun-alerts: object match passes deviceTag and metadata through', async t => {
+  const mockWorker = {
+    loadLib: () => ({
+      specs: {
+        miner: {
+          tag_warning: {
+            valid: () => true,
+            probe: () => [
+              { message: 'TAG-A', deviceTag: 'TAG-A', metadata: { value: 46, threshold: 45, unit: '°C' } },
+              { message: 'TAG-B' }
+            ]
+          }
+        }
+      }
+    }),
+    conf: {
+      thing: {
+        alerts: {
+          miner: { tag_warning: { description: 'Tag warning', severity: 'warning' } }
+        }
+      }
+    },
+    getSpecTags: () => ['miner']
+  }
+  const thing = {
+    type: 'miner',
+    last: { snap: { success: true } },
+    info: {},
+    id: 'id1'
+  }
+  const result = processThingAlerts.call(mockWorker, thing)
+
+  t.is(result.length, 2)
+  t.is(result[0].deviceTag, 'TAG-A', 'deviceTag carried onto the alert')
+  t.alike(result[0].metadata, { value: 46, threshold: 45, unit: '°C' }, 'metadata carried onto the alert')
+  t.is(result[1].deviceTag, undefined, 'deviceTag absent when the match omits it')
+  t.is(result[1].metadata, undefined, 'metadata absent when the match omits it')
+})
+
 test('wrk-fun-alerts: createdAt/uuid persist when only the description (reading) changes', async t => {
   const prevUuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
   const mockWorker = {

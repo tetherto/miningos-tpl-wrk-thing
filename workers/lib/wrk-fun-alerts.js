@@ -9,7 +9,9 @@ const createAlert = ({
   severity,
   createdAt,
   uuid = uuidv4(),
-  message = undefined
+  message = undefined,
+  deviceTag = undefined,
+  metadata = undefined
 }) => {
   return {
     name,
@@ -18,7 +20,9 @@ const createAlert = ({
     severity,
     createdAt,
     uuid,
-    message
+    message,
+    deviceTag,
+    metadata
   }
 }
 
@@ -153,7 +157,9 @@ function processThingAlerts (thg) {
             description,
             severity: alertConf?.severity || 'medium',
             createdAt: Date.now(),
-            message
+            message,
+            deviceTag: isObj ? match.deviceTag : undefined,
+            metadata: isObj ? match.metadata : undefined
           }))
         })
       }
