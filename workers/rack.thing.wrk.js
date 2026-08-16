@@ -230,7 +230,7 @@ class WrkProcVar extends TetherWrkBase {
     }
     const thingConf = this.conf.thing
     const things = this.mem.things
-    async.eachLimit(
+    await async.eachLimit(
       things,
       thingConf.thingQueryConcurrency,
       async (thg) => {
@@ -288,7 +288,7 @@ class WrkProcVar extends TetherWrkBase {
       thingLastCollectionTs -
         this.mem.collectingThingSnap[thg.id].tsThingCollectSnap >
       thingConf.storeSnapItvMs
-    async.retry(thingConf.collectSnapRetry || 3, async () => {
+    await async.retry(thingConf.collectSnapRetry || 3, async () => {
       let snap = null
       let err = null
 
