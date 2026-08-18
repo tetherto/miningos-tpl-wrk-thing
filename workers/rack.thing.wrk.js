@@ -778,7 +778,13 @@ class WrkProcVar extends TetherWrkBase {
 
     this.mem.nextAvailableCode = this._generateThingCode(thg)
 
-    await this.reconnectThing(thg)
+    // Only reconnect when connection opts actually changed. reconnectThing now
+    // tears down and rebuilds the live controller, so an info/tags/comments-only
+    // update (e.g. an info.lastActionId write after an action) must not disrupt an
+    // otherwise healthy connection. All connection state lives under opts.
+    if (Object.keys(getJsonChanges(thgPrev.opts, thg.opts)).length > 0) {
+      await this.reconnectThing(thg)
+    }
 
     return 1
   }

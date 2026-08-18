@@ -163,6 +163,16 @@ test('integration:worker', { timeout: 90000 }, async (main) => {
       'live controller rebuilt with new password after updateThing')
     t.not(newPass, before, 'sanity: password actually changed')
     t.is(await queryPassword(), newPass, 'queryThing returns the new password full-stack')
+
+    // an info-only update must NOT tear down the healthy connection
+    const ctrlBeforeInfo = thingWorker.mem.things[thingId].ctrl
+    await rpcClient.request(
+      'updateThing',
+      Buffer.from(JSON.stringify({ id: thingId, info: { note: 'e2e' }, actionId: 'act-1' })),
+      { timeout: 5000 })
+    t.is(thingWorker.mem.things[thingId].info.note, 'e2e', 'info-only update applied')
+    t.is(thingWorker.mem.things[thingId].ctrl, ctrlBeforeInfo, 'same live controller preserved on info-only update')
+    t.is(await queryPassword(), newPass, 'connection still usable with unchanged credentials')
   })
 
   await main.test('logs clear as per config intervals', async (t) => {

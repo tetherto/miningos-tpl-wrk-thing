@@ -861,6 +861,48 @@ test('WrkProcVar: updateThing rebuilds the live in-mem ctrl with new opts', asyn
   t.is(w.mem.things.t1.ctrl.password, 'newpass', 'live ctrl rebuilt with new opts')
 })
 
+test('WrkProcVar: updateThing without opts change keeps the same live ctrl', async t => {
+  const w = protoWorker()
+  w.ctx.slave = false
+  let db = {
+    id: 't1',
+    code: 'THING-0001',
+    opts: { address: '10.0.0.1', port: 4028, password: 'oldpass' },
+    info: { label: 'a' },
+    tags: ['id-t1', 'code-THING-0001'],
+    comments: []
+  }
+  const originalCtrl = { password: 'oldpass', close () {} }
+  w.mem.things = {
+    t1: {
+      id: 't1',
+      code: 'THING-0001',
+      opts: { address: '10.0.0.1', port: 4028, password: 'oldpass' },
+      info: { label: 'a' },
+      tags: ['id-t1', 'code-THING-0001'],
+      comments: [],
+      last: {},
+      ctrl: originalCtrl
+    }
+  }
+  w.things = {
+    get: async () => ({ value: Buffer.from(JSON.stringify(db)) }),
+    put: async (_id, buf) => { db = JSON.parse(buf.toString()) }
+  }
+  w.updateThingHook0 = async () => {}
+  let reconnected = false
+  w.disconnectThing = async () => { reconnected = true }
+  w.connectThing = async () => { reconnected = true }
+
+  // info-only update (no opts): e.g. an info.lastActionId write after an action
+  await w.updateThing({ id: 't1', info: { label: 'b' }, actionId: 'act-1' })
+
+  t.is(w.mem.things.t1.info.label, 'b', 'info was updated')
+  t.is(w.mem.things.t1.info.lastActionId, 'act-1', 'lastActionId was written')
+  t.absent(reconnected, 'connection was not torn down/rebuilt')
+  t.is(w.mem.things.t1.ctrl, originalCtrl, 'the same live ctrl is preserved (identity)')
+})
+
 test('WrkProcVar: updateThing merges info and comment', async t => {
   const w = protoWorker()
   w.ctx.slave = false
