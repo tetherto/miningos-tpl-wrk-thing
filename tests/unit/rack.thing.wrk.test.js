@@ -399,19 +399,25 @@ test('WrkProcVar: reconnectThing', async t => {
   t.pass()
 })
 
-test('WrkProcVar: reconnectThing rebuilds the in-mem thing, not the passed one', async t => {
+test('WrkProcVar: reconnectThing rebuilds the in-mem thing by identity, not the passed one', async t => {
   const w = protoWorker()
+  const seen = {}
   let closedMem = false
-  const memThg = { id: 't1', opts: { password: 'new' }, ctrl: { password: 'old', close () { closedMem = true } } }
+  const memThg = { id: 't1', opts: { password: 'MEM_PASS' }, ctrl: { password: 'old', close () { closedMem = true } } }
   w.mem.things = { t1: memThg }
-  w.disconnectThing = async (thg) => { if (thg.ctrl) { thg.ctrl.close(); delete thg.ctrl } }
-  w.connectThing = async (thg) => { thg.ctrl = { password: thg.opts.password } }
+  w.disconnectThing = async (thg) => { seen.disconnected = thg; if (thg.ctrl) { thg.ctrl.close(); delete thg.ctrl } }
+  w.connectThing = async (thg) => { seen.connected = thg; thg.ctrl = { password: thg.opts.password } }
 
-  // caller passes a fresh DB-loaded thing (no ctrl); reconnect must target mem
-  await w.reconnectThing({ id: 't1', opts: { password: 'new' } })
+  // caller passes a DIFFERENT object (same id, different opts, no ctrl), like the
+  // fresh DB-loaded thing _updateThing hands to reconnectThing
+  const passedThg = { id: 't1', opts: { password: 'PASSED_PASS' } }
+  await w.reconnectThing(passedThg)
 
+  t.is(seen.disconnected, memThg, 'disconnectThing received the mem object (identity)')
+  t.is(seen.connected, memThg, 'connectThing received the mem object (identity)')
   t.ok(closedMem, 'the live in-mem ctrl was torn down')
-  t.is(memThg.ctrl.password, 'new', 'the in-mem thing was rebuilt with new opts')
+  t.is(memThg.ctrl.password, 'MEM_PASS', 'rebuilt from mem opts, not the passed object opts')
+  t.absent(passedThg.ctrl, 'the passed object was left untouched')
 })
 
 test('WrkProcVar: reconnectThing falls back to the passed thing when not in mem', async t => {
