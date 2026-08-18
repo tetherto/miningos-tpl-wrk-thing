@@ -790,6 +790,47 @@ test('WrkProcVar: saveThingData updates mem', async t => {
   t.is(w.mem.things.t1.opts.z, 9)
 })
 
+test('WrkProcVar: updateThing rebuilds the live in-mem ctrl with new opts', async t => {
+  const w = protoWorker()
+  w.ctx.slave = false
+  let db = {
+    id: 't1',
+    code: 'THING-0001',
+    opts: { address: '10.0.0.1', port: 4028, password: 'oldpass' },
+    info: {},
+    tags: ['id-t1', 'code-THING-0001'],
+    comments: []
+  }
+  let oldCtrlClosed = false
+  w.mem.things = {
+    t1: {
+      id: 't1',
+      code: 'THING-0001',
+      opts: { address: '10.0.0.1', port: 4028, password: 'oldpass' },
+      info: {},
+      tags: ['id-t1', 'code-THING-0001'],
+      comments: [],
+      last: {},
+      // ctrl captures the password at construction time, like the real device controller
+      ctrl: { password: 'oldpass', close () { oldCtrlClosed = true } }
+    }
+  }
+  w.things = {
+    get: async () => ({ value: Buffer.from(JSON.stringify(db)) }),
+    put: async (_id, buf) => { db = JSON.parse(buf.toString()) }
+  }
+  w.updateThingHook0 = async () => {}
+  // real reconnectThing; model connect/disconnect the way the device layer does
+  w.disconnectThing = async (thg) => { if (thg.ctrl) { thg.ctrl.close(); delete thg.ctrl } }
+  w.connectThing = async (thg) => { thg.ctrl = { password: thg.opts.password, close () {} } }
+
+  await w.updateThing({ id: 't1', opts: { password: 'newpass' } })
+
+  t.ok(oldCtrlClosed, 'old ctrl is torn down')
+  t.is(w.mem.things.t1.opts.password, 'newpass', 'mem opts updated')
+  t.is(w.mem.things.t1.ctrl.password, 'newpass', 'live ctrl rebuilt with new opts')
+})
+
 test('WrkProcVar: updateThing merges info and comment', async t => {
   const w = protoWorker()
   w.ctx.slave = false

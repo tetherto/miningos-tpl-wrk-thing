@@ -778,7 +778,11 @@ class WrkProcVar extends TetherWrkBase {
 
     this.mem.nextAvailableCode = this._generateThingCode(thg)
 
-    await this.reconnectThing(thg)
+    // Reconnect the in-mem thing (not the freshly-loaded `thg`, whose `ctrl` is
+    // always undefined): its live `ctrl` caches connection opts like password at
+    // construction, so it must be torn down and rebuilt for opts changes to take
+    // effect on subsequent write commands.
+    await this.reconnectThing(this.mem.things[thg.id])
 
     return 1
   }
