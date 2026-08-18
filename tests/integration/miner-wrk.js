@@ -124,6 +124,57 @@ test('integration:worker', { timeout: 90000 }, async (main) => {
   startRpcClient()
   await registerThing()
 
+  await main.test('updateThing rebuilds the live controller with new opts (e2e)', async (t) => {
+    // The DHT/RPC handshake at startup is racy, so registerThing can time out on
+    // the first attempt; wait for the thing to be registered+connected, retrying
+    // the register as needed, before exercising the update path.
+    let tries = 0
+    while (!thingWorker.mem.things[thingId]?.ctrl && tries < 30) {
+      await sleep(1000)
+      if (tries % 5 === 4) await registerThing()
+      tries++
+    }
+    t.ok(thingWorker.mem.things[thingId]?.ctrl, 'miner registered and connected')
+
+    const queryPassword = async () => {
+      const raw = await rpcClient.request(
+        'queryThing',
+        Buffer.from(JSON.stringify({ id: thingId, method: 'getConfiguredPassword', params: [] })),
+        { timeout: 5000 })
+      return JSON.parse(raw.toString())
+    }
+
+    // baseline: the live controller was built at register with the original password
+    const before = thingWorker.mem.things[thingId].ctrl.getConfiguredPassword()
+    t.ok(before, 'miner connected with a password at register')
+    t.is(await queryPassword(), before, 'queryThing returns the original password')
+
+    // change the password via the real updateThing RPC
+    const newPass = 'newpass-e2e'
+    await rpcClient.request(
+      'updateThing',
+      Buffer.from(JSON.stringify({ id: thingId, opts: { password: newPass } })),
+      { timeout: 5000 })
+
+    // the live controller in mem must now carry the new password (bug: still old)
+    t.is(
+      thingWorker.mem.things[thingId].ctrl.getConfiguredPassword(),
+      newPass,
+      'live controller rebuilt with new password after updateThing')
+    t.not(newPass, before, 'sanity: password actually changed')
+    t.is(await queryPassword(), newPass, 'queryThing returns the new password full-stack')
+
+    // an info-only update must NOT tear down the healthy connection
+    const ctrlBeforeInfo = thingWorker.mem.things[thingId].ctrl
+    await rpcClient.request(
+      'updateThing',
+      Buffer.from(JSON.stringify({ id: thingId, info: { note: 'e2e' }, actionId: 'act-1' })),
+      { timeout: 5000 })
+    t.is(thingWorker.mem.things[thingId].info.note, 'e2e', 'info-only update applied')
+    t.is(thingWorker.mem.things[thingId].ctrl, ctrlBeforeInfo, 'same live controller preserved on info-only update')
+    t.is(await queryPassword(), newPass, 'connection still usable with unchanged credentials')
+  })
+
   await main.test('logs clear as per config intervals', async (t) => {
     const timeoutCycles = 3
     await new Promise((resolve, reject) => {

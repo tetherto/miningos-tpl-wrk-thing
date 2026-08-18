@@ -399,6 +399,36 @@ test('WrkProcVar: reconnectThing', async t => {
   t.pass()
 })
 
+test('WrkProcVar: reconnectThing rebuilds the in-mem thing by identity, not the passed one', async t => {
+  const w = protoWorker()
+  const seen = {}
+  let closedMem = false
+  const memThg = { id: 't1', opts: { password: 'MEM_PASS' }, ctrl: { password: 'old', close () { closedMem = true } } }
+  w.mem.things = { t1: memThg }
+  w.disconnectThing = async (thg) => { seen.disconnected = thg; if (thg.ctrl) { thg.ctrl.close(); delete thg.ctrl } }
+  w.connectThing = async (thg) => { seen.connected = thg; thg.ctrl = { password: thg.opts.password } }
+
+  // caller passes a DIFFERENT object (same id, different opts, no ctrl), like the
+  // fresh DB-loaded thing _updateThing hands to reconnectThing
+  const passedThg = { id: 't1', opts: { password: 'PASSED_PASS' } }
+  await w.reconnectThing(passedThg)
+
+  t.is(seen.disconnected, memThg, 'disconnectThing received the mem object (identity)')
+  t.is(seen.connected, memThg, 'connectThing received the mem object (identity)')
+  t.ok(closedMem, 'the live in-mem ctrl was torn down')
+  t.is(memThg.ctrl.password, 'MEM_PASS', 'rebuilt from mem opts, not the passed object opts')
+  t.absent(passedThg.ctrl, 'the passed object was left untouched')
+})
+
+test('WrkProcVar: reconnectThing falls back to the passed thing when not in mem', async t => {
+  const w = protoWorker()
+  const thg = { id: 'absent', opts: { password: 'p' } }
+  w.disconnectThing = async () => { t.fail('should not disconnect (no ctrl)') }
+  w.connectThing = async (t2) => { t2.ctrl = { password: t2.opts.password } }
+  await w.reconnectThing(thg)
+  t.is(thg.ctrl.password, 'p', 'connected the passed thing as fallback')
+})
+
 test('WrkProcVar: _prepThingTags', async t => {
   const w = protoWorker()
   const tags = w._prepThingTags(
@@ -788,6 +818,89 @@ test('WrkProcVar: saveThingData updates mem', async t => {
   w._saveThingDataToDb = async () => {}
   await w.saveThingData({ id: 't1', opts: { z: 9 } })
   t.is(w.mem.things.t1.opts.z, 9)
+})
+
+test('WrkProcVar: updateThing rebuilds the live in-mem ctrl with new opts', async t => {
+  const w = protoWorker()
+  w.ctx.slave = false
+  let db = {
+    id: 't1',
+    code: 'THING-0001',
+    opts: { address: '10.0.0.1', port: 4028, password: 'oldpass' },
+    info: {},
+    tags: ['id-t1', 'code-THING-0001'],
+    comments: []
+  }
+  let oldCtrlClosed = false
+  w.mem.things = {
+    t1: {
+      id: 't1',
+      code: 'THING-0001',
+      opts: { address: '10.0.0.1', port: 4028, password: 'oldpass' },
+      info: {},
+      tags: ['id-t1', 'code-THING-0001'],
+      comments: [],
+      last: {},
+      // ctrl captures the password at construction time, like the real device controller
+      ctrl: { password: 'oldpass', close () { oldCtrlClosed = true } }
+    }
+  }
+  w.things = {
+    get: async () => ({ value: Buffer.from(JSON.stringify(db)) }),
+    put: async (_id, buf) => { db = JSON.parse(buf.toString()) }
+  }
+  w.updateThingHook0 = async () => {}
+  // real reconnectThing; model connect/disconnect the way the device layer does
+  w.disconnectThing = async (thg) => { if (thg.ctrl) { thg.ctrl.close(); delete thg.ctrl } }
+  w.connectThing = async (thg) => { thg.ctrl = { password: thg.opts.password, close () {} } }
+
+  await w.updateThing({ id: 't1', opts: { password: 'newpass' } })
+
+  t.ok(oldCtrlClosed, 'old ctrl is torn down')
+  t.is(w.mem.things.t1.opts.password, 'newpass', 'mem opts updated')
+  t.is(w.mem.things.t1.ctrl.password, 'newpass', 'live ctrl rebuilt with new opts')
+})
+
+test('WrkProcVar: updateThing without opts change keeps the same live ctrl', async t => {
+  const w = protoWorker()
+  w.ctx.slave = false
+  let db = {
+    id: 't1',
+    code: 'THING-0001',
+    opts: { address: '10.0.0.1', port: 4028, password: 'oldpass' },
+    info: { label: 'a' },
+    tags: ['id-t1', 'code-THING-0001'],
+    comments: []
+  }
+  const originalCtrl = { password: 'oldpass', close () {} }
+  w.mem.things = {
+    t1: {
+      id: 't1',
+      code: 'THING-0001',
+      opts: { address: '10.0.0.1', port: 4028, password: 'oldpass' },
+      info: { label: 'a' },
+      tags: ['id-t1', 'code-THING-0001'],
+      comments: [],
+      last: {},
+      ctrl: originalCtrl
+    }
+  }
+  w.things = {
+    get: async () => ({ value: Buffer.from(JSON.stringify(db)) }),
+    put: async (_id, buf) => { db = JSON.parse(buf.toString()) }
+  }
+  w.updateThingHook0 = async () => {}
+  let reconnected = false
+  w.disconnectThing = async () => { reconnected = true }
+  w.connectThing = async () => { reconnected = true }
+
+  // info-only update (no opts): e.g. an info.lastActionId write after an action
+  await w.updateThing({ id: 't1', info: { label: 'b' }, actionId: 'act-1' })
+
+  t.is(w.mem.things.t1.info.label, 'b', 'info was updated')
+  t.is(w.mem.things.t1.info.lastActionId, 'act-1', 'lastActionId was written')
+  t.absent(reconnected, 'connection was not torn down/rebuilt')
+  t.is(w.mem.things.t1.ctrl, originalCtrl, 'the same live ctrl is preserved (identity)')
 })
 
 test('WrkProcVar: updateThing merges info and comment', async t => {
