@@ -399,6 +399,30 @@ test('WrkProcVar: reconnectThing', async t => {
   t.pass()
 })
 
+test('WrkProcVar: reconnectThing rebuilds the in-mem thing, not the passed one', async t => {
+  const w = protoWorker()
+  let closedMem = false
+  const memThg = { id: 't1', opts: { password: 'new' }, ctrl: { password: 'old', close () { closedMem = true } } }
+  w.mem.things = { t1: memThg }
+  w.disconnectThing = async (thg) => { if (thg.ctrl) { thg.ctrl.close(); delete thg.ctrl } }
+  w.connectThing = async (thg) => { thg.ctrl = { password: thg.opts.password } }
+
+  // caller passes a fresh DB-loaded thing (no ctrl); reconnect must target mem
+  await w.reconnectThing({ id: 't1', opts: { password: 'new' } })
+
+  t.ok(closedMem, 'the live in-mem ctrl was torn down')
+  t.is(memThg.ctrl.password, 'new', 'the in-mem thing was rebuilt with new opts')
+})
+
+test('WrkProcVar: reconnectThing falls back to the passed thing when not in mem', async t => {
+  const w = protoWorker()
+  const thg = { id: 'absent', opts: { password: 'p' } }
+  w.disconnectThing = async () => { t.fail('should not disconnect (no ctrl)') }
+  w.connectThing = async (t2) => { t2.ctrl = { password: t2.opts.password } }
+  await w.reconnectThing(thg)
+  t.is(thg.ctrl.password, 'p', 'connected the passed thing as fallback')
+})
+
 test('WrkProcVar: _prepThingTags', async t => {
   const w = protoWorker()
   const tags = w._prepThingTags(
