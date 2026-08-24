@@ -98,7 +98,8 @@ class WrkProcVar extends TetherWrkBase {
       log: {},
       log_cache: {},
       log_map: {},
-      collectingThingSnap: {}
+      collectingThingSnap: {},
+      configuredAlertParams: {}
     }
   }
 
@@ -1592,7 +1593,10 @@ class WrkProcVar extends TetherWrkBase {
   async saveWrkSettings (req) {
     if (!req.entries) throw new Error('ERR_ENTRIES_INVALID')
 
-    return await lWrkFunSettings.saveSettingsEntries.call(this, req.entries)
+    const res = await lWrkFunSettings.saveSettingsEntries.call(this, req.entries)
+    await this._resolveConfigurableAlertParams()
+
+    return res
   }
 
   /**
@@ -1715,6 +1719,33 @@ class WrkProcVar extends TetherWrkBase {
     return keys
   }
 
+  getSpecTags () {
+    return []
+  }
+
+  async getAlertConf (req) {
+    const lLibAlerts = this.loadLib('alerts')
+
+    const result = {}
+
+    for (const tag of this.getSpecTags()) {
+      const alertSpecsForTag = lLibAlerts.specs[tag] ?? {}
+
+      for (const [alertKey, alertSpec] of Object.entries(alertSpecsForTag)) {
+        if (alertSpec.configSchema) {
+          result[alertKey] = alertSpec.configSchema
+        }
+      }
+    }
+
+    return result
+  }
+
+  async _resolveConfigurableAlertParams () {
+    const wrkSettings = await this.getWrkSettings()
+    this.mem.configuredAlertParams = wrkSettings.alertParams ?? {}
+  }
+
   _start (cb) {
     async.series([
       next => { super._start(next) },
@@ -1834,6 +1865,8 @@ class WrkProcVar extends TetherWrkBase {
             this.buildStats(sk, fireTime)
           }, tfs[1])
         }
+
+        await this._resolveConfigurableAlertParams()
       },
       (next) => {
         this.miningosThgWriteCalls_0.bindWriteCalls('net_r0')

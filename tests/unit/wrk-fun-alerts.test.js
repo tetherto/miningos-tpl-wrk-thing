@@ -61,7 +61,8 @@ test('wrk-fun-alerts: processThingAlerts with errors from snap', async t => {
         }
       }
     },
-    getSpecTags: () => []
+    getSpecTags: () => [],
+    mem: { configuredAlertParams: {} }
   }
 
   const thing = {
@@ -114,7 +115,8 @@ test('wrk-fun-alerts: processThingAlerts with spec validation', async t => {
         }
       }
     },
-    getSpecTags: () => ['miner']
+    getSpecTags: () => ['miner'],
+    mem: { configuredAlertParams: {} }
   }
 
   const thing = {
@@ -153,7 +155,8 @@ test('wrk-fun-alerts: processThingAlerts with spec validation error', async t =>
         }
       }
     },
-    getSpecTags: () => ['miner']
+    getSpecTags: () => ['miner'],
+    mem: { configuredAlertParams: {} }
   }
 
   const thing = {
@@ -183,7 +186,8 @@ test('wrk-fun-alerts: processThingAlerts returns null when no alerts', async t =
         }
       }
     },
-    getSpecTags: () => []
+    getSpecTags: () => [],
+    mem: { configuredAlertParams: {} }
   }
 
   const thing = {
@@ -236,7 +240,8 @@ test('wrk-fun-alerts: ignores spec tags without specs entry', async t => {
         }
       }
     },
-    getSpecTags: () => ['other', 'miner']
+    getSpecTags: () => ['other', 'miner'],
+    mem: { configuredAlertParams: {} }
   }
   const thing = {
     type: 'miner',
@@ -270,7 +275,8 @@ test('wrk-fun-alerts: valid false skips probe', async t => {
         }
       }
     },
-    getSpecTags: () => ['miner']
+    getSpecTags: () => ['miner'],
+    mem: { configuredAlertParams: {} }
   }
   const thing = {
     type: 'miner',
@@ -303,7 +309,8 @@ test('wrk-fun-alerts: array probe result raises one alert per match with message
         }
       }
     },
-    getSpecTags: () => ['miner']
+    getSpecTags: () => ['miner'],
+    mem: { configuredAlertParams: {} }
   }
   const thing = {
     type: 'miner',
@@ -338,7 +345,8 @@ test('wrk-fun-alerts: empty array probe result raises no alert', async t => {
         }
       }
     },
-    getSpecTags: () => ['miner']
+    getSpecTags: () => ['miner'],
+    mem: { configuredAlertParams: {} }
   }
   const thing = {
     type: 'miner',
@@ -372,7 +380,8 @@ test('wrk-fun-alerts: object match supports per-alert description override', asy
         }
       }
     },
-    getSpecTags: () => ['miner']
+    getSpecTags: () => ['miner'],
+    mem: { configuredAlertParams: {} }
   }
   const thing = {
     type: 'miner',
@@ -411,7 +420,8 @@ test('wrk-fun-alerts: object match passes deviceTag and metadata through', async
         }
       }
     },
-    getSpecTags: () => ['miner']
+    getSpecTags: () => ['miner'],
+    mem: { configuredAlertParams: {} }
   }
   const thing = {
     type: 'miner',
@@ -449,7 +459,8 @@ test('wrk-fun-alerts: createdAt/uuid persist when only the description (reading)
         }
       }
     },
-    getSpecTags: () => ['miner']
+    getSpecTags: () => ['miner'],
+    mem: { configuredAlertParams: {} }
   }
   const thing = {
     type: 'miner',
@@ -472,4 +483,114 @@ test('wrk-fun-alerts: createdAt/uuid persist when only the description (reading)
   t.is(result[0].description, 'reading 321 (threshold 330)', 'description reflects the new reading')
   t.is(result[0].createdAt, 4242, 'createdAt pinned to when the condition first appeared')
   t.is(result[0].uuid, prevUuid, 'uuid preserved across the changing reading')
+})
+
+test('wrk-fun-alerts: alertsContext exposes configuredAlertParams from worker mem', async t => {
+  let capturedContext = null
+  const configuredAlertParams = { high_temp: { threshold: 85 } }
+  const mockWorker = {
+    loadLib: () => ({
+      specs: {
+        miner: {
+          high_temp: {
+            valid: (ctx) => { capturedContext = ctx; return false },
+            probe: () => { throw new Error('probe must not run when valid is false') }
+          }
+        }
+      }
+    }),
+    conf: {
+      thing: {
+        alerts: {
+          miner: { high_temp: { description: 'hot', severity: 'high' } }
+        }
+      }
+    },
+    getSpecTags: () => ['miner'],
+    mem: { configuredAlertParams }
+  }
+  const thing = {
+    type: 'miner',
+    last: { snap: { success: true } },
+    info: {},
+    id: 'id1'
+  }
+  const result = processThingAlerts.call(mockWorker, thing)
+
+  t.is(result, null)
+  t.alike(capturedContext.configuredParams, configuredAlertParams, 'configured alert params forwarded to valid/probe')
+})
+
+test('wrk-fun-alerts: object match severity overrides config severity, falls back when omitted', async t => {
+  const mockWorker = {
+    loadLib: () => ({
+      specs: {
+        miner: {
+          tag_warning: {
+            valid: () => true,
+            probe: () => [
+              { message: 'TAG-A', severity: 'critical' },
+              { message: 'TAG-B' }
+            ]
+          }
+        }
+      }
+    }),
+    conf: {
+      thing: {
+        alerts: {
+          miner: { tag_warning: { description: 'Tag warning', severity: 'warning' } }
+        }
+      }
+    },
+    getSpecTags: () => ['miner'],
+    mem: { configuredAlertParams: {} }
+  }
+  const thing = {
+    type: 'miner',
+    last: { snap: { success: true } },
+    info: {},
+    id: 'id1'
+  }
+  const result = processThingAlerts.call(mockWorker, thing)
+
+  t.is(result.length, 2)
+  t.is(result[0].severity, 'critical', 'per-match severity used when provided')
+  t.is(result[1].severity, 'warning', 'falls back to config severity when match omits it')
+})
+
+test('wrk-fun-alerts: legacy non-array probe result does not throw and uses config severity', async t => {
+  const mockWorker = {
+    loadLib: () => ({
+      specs: {
+        miner: {
+          legacy_alert: {
+            valid: () => true,
+            probe: () => true
+          }
+        }
+      }
+    }),
+    conf: {
+      thing: {
+        alerts: {
+          miner: { legacy_alert: { name: 'Legacy', code: 'LEGACY', description: 'legacy', severity: 'high' } }
+        }
+      }
+    },
+    getSpecTags: () => ['miner'],
+    mem: { configuredAlertParams: {} }
+  }
+  const thing = {
+    type: 'miner',
+    last: { snap: { success: true } },
+    info: {},
+    id: 'id1'
+  }
+  const result = processThingAlerts.call(mockWorker, thing)
+
+  t.ok(Array.isArray(result))
+  t.is(result.length, 1)
+  t.is(result[0].name, 'Legacy')
+  t.is(result[0].severity, 'high', 'falls back to config severity when probe returns a bare boolean')
 })

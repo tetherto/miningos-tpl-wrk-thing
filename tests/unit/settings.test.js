@@ -7,6 +7,7 @@ function protoWorker () {
   const worker = Object.create(WrkProcVar.prototype)
   worker.ctx = { rack: 'test-rack' }
   worker.conf = { thing: {} }
+  worker.mem = {}
   worker.settingsData = null
   worker.settings = {
     get: async () => worker.settingsData,

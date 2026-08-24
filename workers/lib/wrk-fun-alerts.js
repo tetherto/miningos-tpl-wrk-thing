@@ -89,7 +89,8 @@ function processThingAlerts (thg) {
     conf: alertsFromConfig,
     info: thg.info,
     thingConf,
-    id: thg.id
+    id: thg.id,
+    configuredParams: this.mem.configuredAlertParams
   }
 
   const errorsFromSnap = getErrorsFromSnap(snap)
@@ -155,7 +156,7 @@ function processThingAlerts (thg) {
             name: alertConf?.name || ak,
             code: alertConf?.code || ak,
             description,
-            severity: alertConf?.severity || 'medium',
+            severity: (isObj && match.severity) || alertConf?.severity || 'medium',
             createdAt: Date.now(),
             message,
             deviceTag: isObj ? match.deviceTag : undefined,
