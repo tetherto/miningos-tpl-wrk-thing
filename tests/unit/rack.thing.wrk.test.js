@@ -5,6 +5,7 @@ const TetherWrkBase = require('@tetherto/tether-wrk-base/workers/base.wrk.tether
 const WrkProcVar = require('../../workers/rack.thing.wrk')
 const lWrkFunLogs = require('../../workers/lib/wrk-fun-logs')
 const lWrkFunReplica = require('../../workers/lib/wrk-fun-replica')
+const lWrkFunSettings = require('../../workers/lib/wrk-fun-settings')
 const { STAT_RTD, RPC_METHODS } = require('../../workers/lib/constants')
 
 test('WrkProcVar: getThingType', async t => {
@@ -727,6 +728,79 @@ test('WrkProcVar: saveWrkSettings validates entries', async t => {
   } catch (e) {
     t.is(e.message, 'ERR_ENTRIES_INVALID')
   }
+})
+
+test('WrkProcVar: saveWrkSettings refreshes configured alert params after saving', async t => {
+  const w = protoWorker()
+  const origSave = lWrkFunSettings.saveSettingsEntries
+  lWrkFunSettings.saveSettingsEntries = async (entries) => ({ alertParams: entries.alertParams })
+  w.getWrkSettings = async () => ({ alertParams: { high_temp: { threshold: 90 } } })
+  try {
+    const res = await w.saveWrkSettings({ entries: { alertParams: { high_temp: { threshold: 90 } } } })
+    t.alike(res, { alertParams: { high_temp: { threshold: 90 } } })
+    t.alike(w.mem.configuredAlertParams, { high_temp: { threshold: 90 } }, 'mem refreshed from post-save settings')
+  } finally {
+    lWrkFunSettings.saveSettingsEntries = origSave
+  }
+})
+
+test('WrkProcVar: getSpecTags default returns empty array', async t => {
+  const w = protoWorker()
+  t.alike(w.getSpecTags(), [])
+})
+
+test('WrkProcVar: getAlertConf returns empty object when there are no spec tags', async t => {
+  const w = protoWorker()
+  w.loadLib = () => ({ specs: { miner: { high_temp: { configSchema: { threshold: 'number' } } } } })
+  const conf = await w.getAlertConf({})
+  t.alike(conf, {})
+})
+
+test('WrkProcVar: getAlertConf collects configSchema for alerts across spec tags', async t => {
+  const w = protoWorker()
+  w.getSpecTags = () => ['miner', 'container']
+  w.loadLib = () => ({
+    specs: {
+      miner: {
+        high_temp: { configSchema: { threshold: 'number' } },
+        offline: {}
+      },
+      container: {
+        humidity: { configSchema: { threshold: 'number', unit: 'string' } }
+      }
+    }
+  })
+  const conf = await w.getAlertConf({})
+  t.alike(conf, {
+    high_temp: { threshold: 'number' },
+    humidity: { threshold: 'number', unit: 'string' }
+  })
+})
+
+test('WrkProcVar: getAlertConf skips spec tags missing from specs', async t => {
+  const w = protoWorker()
+  w.getSpecTags = () => ['other', 'miner']
+  w.loadLib = () => ({
+    specs: {
+      miner: { high_temp: { configSchema: { threshold: 'number' } } }
+    }
+  })
+  const conf = await w.getAlertConf({})
+  t.alike(conf, { high_temp: { threshold: 'number' } })
+})
+
+test('WrkProcVar: _resolveConfigurableAlertParams defaults to empty object', async t => {
+  const w = protoWorker()
+  w.getWrkSettings = async () => ({})
+  await w._resolveConfigurableAlertParams()
+  t.alike(w.mem.configuredAlertParams, {})
+})
+
+test('WrkProcVar: _resolveConfigurableAlertParams reads alertParams from settings', async t => {
+  const w = protoWorker()
+  w.getWrkSettings = async () => ({ alertParams: { high_temp: { threshold: 80 } } })
+  await w._resolveConfigurableAlertParams()
+  t.alike(w.mem.configuredAlertParams, { high_temp: { threshold: 80 } })
 })
 
 test('WrkProcVar: getHistoricalLogs rejects missing type', async t => {
