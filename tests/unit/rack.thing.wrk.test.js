@@ -749,46 +749,6 @@ test('WrkProcVar: getSpecTags default returns empty array', async t => {
   t.alike(w.getSpecTags(), [])
 })
 
-test('WrkProcVar: getAlertConf returns empty object when there are no spec tags', async t => {
-  const w = protoWorker()
-  w.loadLib = () => ({ specs: { miner: { high_temp: { configSchema: { threshold: 'number' } } } } })
-  const conf = await w.getAlertConf({})
-  t.alike(conf, {})
-})
-
-test('WrkProcVar: getAlertConf collects configSchema for alerts across spec tags', async t => {
-  const w = protoWorker()
-  w.getSpecTags = () => ['miner', 'container']
-  w.loadLib = () => ({
-    specs: {
-      miner: {
-        high_temp: { configSchema: { threshold: 'number' } },
-        offline: {}
-      },
-      container: {
-        humidity: { configSchema: { threshold: 'number', unit: 'string' } }
-      }
-    }
-  })
-  const conf = await w.getAlertConf({})
-  t.alike(conf, {
-    high_temp: { threshold: 'number' },
-    humidity: { threshold: 'number', unit: 'string' }
-  })
-})
-
-test('WrkProcVar: getAlertConf skips spec tags missing from specs', async t => {
-  const w = protoWorker()
-  w.getSpecTags = () => ['other', 'miner']
-  w.loadLib = () => ({
-    specs: {
-      miner: { high_temp: { configSchema: { threshold: 'number' } } }
-    }
-  })
-  const conf = await w.getAlertConf({})
-  t.alike(conf, { high_temp: { threshold: 'number' } })
-})
-
 test('WrkProcVar: _resolveConfigurableAlertParams defaults to empty object', async t => {
   const w = protoWorker()
   w.getWrkSettings = async () => ({})

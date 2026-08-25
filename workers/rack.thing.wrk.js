@@ -1723,24 +1723,6 @@ class WrkProcVar extends TetherWrkBase {
     return []
   }
 
-  async getAlertConf (req) {
-    const lLibAlerts = this.loadLib('alerts')
-
-    const result = {}
-
-    for (const tag of this.getSpecTags()) {
-      const alertSpecsForTag = lLibAlerts.specs[tag] ?? {}
-
-      for (const [alertKey, alertSpec] of Object.entries(alertSpecsForTag)) {
-        if (alertSpec.configSchema) {
-          result[alertKey] = alertSpec.configSchema
-        }
-      }
-    }
-
-    return result
-  }
-
   async _resolveConfigurableAlertParams () {
     const wrkSettings = await this.getWrkSettings()
     this.mem.configuredAlertParams = wrkSettings.alertParams ?? {}
