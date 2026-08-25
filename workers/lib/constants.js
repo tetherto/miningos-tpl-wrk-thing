@@ -27,8 +27,7 @@ const RPC_METHODS = [
   'getWrkConf',
   'getThingConf',
   'getWrkSettings',
-  'saveWrkSettings',
-  'getAlertConf'
+  'saveWrkSettings'
 ]
 
 const AUDIT_METHODS = new Set([
