@@ -50,6 +50,7 @@ class BaseThing extends EventEmitter {
 
   async getSnap () {
     let snap
+    const snapStart = Date.now()
     try {
       const data = await this._prepSnap()
 
@@ -84,6 +85,7 @@ class BaseThing extends EventEmitter {
       }
     }
 
+    if (snap) snap.latency = Date.now() - snapStart
     this.lastSnap = snap
     return snap
   }
