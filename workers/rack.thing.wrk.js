@@ -366,12 +366,7 @@ class WrkProcVar extends TetherWrkBase {
   }
 
   async updateThingHook0 (thg, thgPrev) {
-    if (!thg || !thgPrev) return
-    try {
-      await this._storeInfoChangesToDb(thgPrev, thg)
-    } catch (error) {
-      this.debugError('ERR_UPDATE_THING_STORE_INFO_CHANGES_TO_DB_FAILED')
-    }
+    // no-op
   }
 
   async forgetThingHook0 (thg) {
@@ -774,6 +769,12 @@ class WrkProcVar extends TetherWrkBase {
     await this.updateThingHook0(thg, thgPrev)
 
     await this._storeThingDb(thg)
+
+    try {
+      await this._storeInfoChangesToDb(thgPrev, thg)
+    } catch (error) {
+      this.debugError('ERR_UPDATE_THING_STORE_INFO_CHANGES_TO_DB_FAILED')
+    }
 
     this._saveThingDataToMem(thg)
 
