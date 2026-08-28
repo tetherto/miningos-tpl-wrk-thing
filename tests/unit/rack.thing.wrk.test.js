@@ -1496,12 +1496,72 @@ test('WrkProcVar: _storeInfoChangesToDb logs put errors', async t => {
   t.pass()
 })
 
-test('WrkProcVar: updateThingHook0 swallows store errors', async t => {
+function updatableWorker (db) {
+  const state = { db, calls: [] }
   const w = protoWorker()
+  w.ctx.slave = false
+  w.mem.things = {
+    [db.id]: { ...JSON.parse(JSON.stringify(db)), last: {} }
+  }
+  w.things = {
+    get: async () => ({ value: Buffer.from(JSON.stringify(state.db)) }),
+    put: async (_id, buf) => {
+      state.calls.push('store')
+      state.db = JSON.parse(buf.toString())
+    }
+  }
+  w._storeInfoChangesToDb = async () => { state.calls.push('history') }
+  w.updateThingHook0 = async () => {}
+  w.reconnectThing = async () => {}
+  return { w, state }
+}
+
+test('WrkProcVar: updateThing writes history only after the thing is stored', async t => {
+  const { w, state } = updatableWorker({
+    id: 't1',
+    code: 'THING-0001',
+    opts: {},
+    info: { location: 'site.lab' },
+    tags: ['id-t1', 'code-THING-0001'],
+    comments: []
+  })
+  await w.updateThing({ id: 't1', info: { location: 'site.miner_room' } })
+  t.alike(state.calls, ['store', 'history'])
+  t.is(state.db.info.location, 'site.miner_room')
+})
+
+test('WrkProcVar: updateThing does not write history when a hook fails', async t => {
+  const { w, state } = updatableWorker({
+    id: 't1',
+    code: 'THING-0001',
+    opts: {},
+    info: { location: 'site.lab', status: 'faulty' },
+    tags: ['id-t1', 'code-THING-0001'],
+    comments: []
+  })
+  w.updateThingHook0 = async () => { throw new Error('ERR_NO_AVAILABLE_IP') }
+  await t.exception(
+    w.updateThing({ id: 't1', info: { location: 'site.miner_room', status: 'in_operation' } }),
+    /ERR_NO_AVAILABLE_IP/
+  )
+  t.alike(state.calls, [])
+  t.is(state.db.info.location, 'site.lab')
+  t.is(state.db.info.status, 'faulty')
+})
+
+test('WrkProcVar: updateThing swallows history store errors', async t => {
+  const { w, state } = updatableWorker({
+    id: 't1',
+    code: 'THING-0001',
+    opts: {},
+    info: { a: 1 },
+    tags: ['id-t1', 'code-THING-0001'],
+    comments: []
+  })
   w._storeInfoChangesToDb = async () => { throw new Error('db fail') }
   w.debugError = () => {}
-  await w.updateThingHook0({ id: 't1', info: {} }, { id: 't1', info: {} })
-  t.pass()
+  await w.updateThing({ id: 't1', info: { a: 2 } })
+  t.is(state.db.info.a, 2)
 })
 
 test('WrkProcVar: _collectSnap skips when already collecting', async t => {
