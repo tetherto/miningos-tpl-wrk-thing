@@ -2,7 +2,7 @@
 
 const test = require('brittle')
 const proxyquire = require('proxyquire')
-const { aggrStats, buildStats } = require('../../workers/lib/wrk-fun-stats')
+const { aggrStats, buildStats, statKeyOps } = require('../../workers/lib/wrk-fun-stats')
 
 test('wrk-fun-stats: aggrStats with no things', async t => {
   const mockWorker = {
@@ -173,4 +173,35 @@ test('wrk-fun-stats: _buildStats debugError when log put fails', async t => {
   await buildStatsStub.call(w, 'stat', fireTime)
   t.ok(saw)
   t.is(saw.message, 'put-fail')
+})
+
+test('wrk-fun-stats: statKeyOps keeps unscoped ops and drops ops of other stat keys', async t => {
+  const ops = {
+    hashrate_sum: { op: 'sum', src: 'last.snap.stats.hashrate_mhs' },
+    temperature_c_group: { op: 'group', src: 'last.snap.stats.temperature_c', statKeys: ['stat-1D'] }
+  }
+
+  t.alike(Object.keys(statKeyOps(ops, undefined)), ['hashrate_sum', 'temperature_c_group'])
+  t.alike(Object.keys(statKeyOps(ops, 'stat-1D')), ['hashrate_sum', 'temperature_c_group'])
+  t.alike(Object.keys(statKeyOps(ops, 'stat-5m')), ['hashrate_sum'])
+})
+
+test('wrk-fun-stats: aggrStats skips ops that do not belong to the stat key', async t => {
+  const mockWorker = {
+    loadLib: () => ({
+      specs: {
+        miner: {
+          ops: {
+            always: { op: 'cnt' },
+            daily: { op: 'cnt', statKeys: ['stat-1D'] }
+          }
+        }
+      }
+    }),
+    getSpecTags: () => ['miner'],
+    mem: { things: { thing1: { id: 'thing1', last: {}, info: {}, tags: ['t-miner'], opts: {}, type: 'miner' } } }
+  }
+
+  t.alike(Object.keys(aggrStats.call(mockWorker, ['thing1'], { logKey: 'stat-5m' })), ['always'])
+  t.alike(Object.keys(aggrStats.call(mockWorker, ['thing1'], { logKey: 'stat-1D' })), ['always', 'daily'])
 })

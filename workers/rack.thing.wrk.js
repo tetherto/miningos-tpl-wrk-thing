@@ -1647,7 +1647,7 @@ class WrkProcVar extends TetherWrkBase {
       if (!Object.keys(thgsRtd).length) return
 
       try {
-        const aggrData = lWrkFunStats.aggrStats.call(this, Object.keys(thgsRtd), {}, thgsRtd)
+        const aggrData = lWrkFunStats.aggrStats.call(this, Object.keys(thgsRtd), { logKey: STAT_RTD }, thgsRtd)
         const log = await lWrkFunLogs.getBeeTimeLog.call(this, `${STAT_RTD}-t-${this._getThingBaseType()}`, 0, true)
         await log.put(STAT_RTD, Buffer.from(JSON.stringify(aggrData)))
         await lWrkFunLogs.releaseBeeTimeLog.call(this, log)

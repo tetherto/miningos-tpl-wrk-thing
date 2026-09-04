@@ -2,6 +2,14 @@ const utilsStore = require('@tetherto/hp-svc-facs-store/utils')
 const gLibStats = require('@tetherto/miningos-lib-stats')
 const lWrkFunLogs = require('./wrk-fun-logs')
 
+function statKeyOps (ops, logKey) {
+  if (!logKey) return ops
+
+  return Object.fromEntries(
+    Object.entries(ops).filter(([, op]) => !op.statKeys || op.statKeys.includes(logKey))
+  )
+}
+
 function aggrStats (thgIds, opts = {}, thgs = null) {
   const result = {}
   const lLibStats = this.loadLib('stats')
@@ -13,7 +21,7 @@ function aggrStats (thgIds, opts = {}, thgs = null) {
     }
 
     const state = {}
-    state.ops = specs[stype].ops
+    state.ops = statKeyOps(specs[stype].ops, opts.logKey)
     const acc = {}
 
     for (const thgId of thgIds) {
@@ -66,7 +74,7 @@ async function _buildStats (logKey, fireTime) {
   for await (const tag of tags) {
     const tagSpec = tagSpecs[tag]
 
-    const acc = aggrStats.call(this, tagSpec.thgIds)
+    const acc = aggrStats.call(this, tagSpec.thgIds, { logKey })
     const log = await lWrkFunLogs.getBeeTimeLog.call(this, `${logKey}-${tag}`, 0, true)
 
     try {
@@ -111,5 +119,6 @@ async function buildStats (logKey, fireTime) {
 
 module.exports = {
   aggrStats,
+  statKeyOps,
   buildStats
 }
