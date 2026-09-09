@@ -231,16 +231,16 @@ class WrkProcVar extends TetherWrkBase {
     }
     const thingConf = this.conf.thing
     const things = this.mem.things
+    // Do not pass a completion callback: async.eachLimit then returns undefined
+    // instead of a Promise, so this would not wait and concurrency would not apply.
     await async.eachLimit(
       things,
       thingConf.thingQueryConcurrency,
       async (thg) => {
         await this._collectSnap(thg, thingConf)
-      },
-      async () => {
-        await this.collectSnapsHook0()
       }
     )
+    await this.collectSnapsHook0()
     try {
       await this._saveAlerts()
     } catch (err) {
@@ -289,58 +289,64 @@ class WrkProcVar extends TetherWrkBase {
       thingLastCollectionTs -
         this.mem.collectingThingSnap[thg.id].tsThingCollectSnap >
       thingConf.storeSnapItvMs
-    await async.retry(thingConf.collectSnapRetry || 3, async () => {
-      let snap = null
-      let err = null
+    try {
+      // Do not pass a completion callback: async.retry then returns undefined
+      // instead of a Promise, so collectSnaps would treat every snap as done immediately.
+      await async.retry(thingConf.collectSnapRetry || 3, async () => {
+        let snap = null
+        let err = null
 
-      if (!thg.ctrl) {
-        try {
-          await this.connectThing(thg)
-        } catch (e) {
-          this.debugError('ERR_CONNECT_THING', e)
-        }
-      }
-
-      // The device should be offline if marked as maintenance
-      if (thg.info?.container === 'maintenance') {
-        snap = this._getOfflineSnap()
-      } else if (thg.ctrl) {
-        try {
-          snap = await promiseTimeout(
-            this.collectThingSnap(thg),
-            thingConf.collectSnapTimeoutMs
-          )
-        } catch (e) {
-          if (e.message === 'ERR_PROMISE_TIMEOUT') {
-            snap = this._getOfflineSnap()
-          } else {
-            err = e
-            this.debugThingError(thg, e)
+        if (!thg.ctrl) {
+          try {
+            await this.connectThing(thg)
+          } catch (e) {
+            this.debugError('ERR_CONNECT_THING', e)
           }
         }
-      } else {
-        err = new Error('ERR_THING_CONNECTION_FAILURE')
-      }
 
-      thg.last.snap = snap
+        // The device should be offline if marked as maintenance
+        if (thg.info?.container === 'maintenance') {
+          snap = this._getOfflineSnap()
+        } else if (thg.ctrl) {
+          try {
+            snap = await promiseTimeout(
+              this.collectThingSnap(thg),
+              thingConf.collectSnapTimeoutMs
+            )
+          } catch (e) {
+            if (e.message === 'ERR_PROMISE_TIMEOUT') {
+              snap = this._getOfflineSnap()
+            } else {
+              err = e
+              this.debugThingError(thg, e)
+            }
+          }
+        } else {
+          err = new Error('ERR_THING_CONNECTION_FAILURE')
+        }
 
-      if (thg.last?.snap) {
-        thg.last.alerts = lWrkFunAlerts.processThingAlerts.call(this, thg)
-      }
+        thg.last.snap = snap
 
-      thg.last.err = err ? err.message : null
-      thg.last.ts = thingLastCollectionTs
+        if (thg.last?.snap) {
+          thg.last.alerts = lWrkFunAlerts.processThingAlerts.call(this, thg)
+        }
 
-      if (shouldStore) {
-        await this._storeThingSnap({ err, snap, thg, thingLastCollectionTs })
-      }
-    }, async () => {
+        thg.last.err = err ? err.message : null
+        thg.last.ts = thingLastCollectionTs
+
+        if (shouldStore) {
+          await this._storeThingSnap({ err, snap, thg, thingLastCollectionTs })
+        }
+      })
+    } catch (e) {
+      this.debugThingError(thg, e)
+    } finally {
       this.mem.collectingThingSnap[thg.id] = {
         isCollectingSnap: false,
         thingLastCollectionTs,
         ...(shouldStore ? { tsThingCollectSnap: thingLastCollectionTs } : {})
       }
-    })
+    }
   }
 
   async collectThingSnap (thg) {
