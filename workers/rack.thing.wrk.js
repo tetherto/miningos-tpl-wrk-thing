@@ -12,6 +12,7 @@ const { promiseTimeout } = require('@bitfinex/lib-js-util-promise')
 const lWrkFunStats = require('./lib/wrk-fun-stats')
 const lWrkFunAlerts = require('./lib/wrk-fun-alerts')
 const lWrkFunLogs = require('./lib/wrk-fun-logs')
+const lWrkFunRollups = require('./lib/wrk-fun-rollups')
 const lWrkFunReplica = require('./lib/wrk-fun-replica')
 const lWrkFunSettings = require('./lib/wrk-fun-settings')
 const { exit } = require('node:process')
@@ -1629,6 +1630,26 @@ class WrkProcVar extends TetherWrkBase {
     return lWrkFunStats.buildStats.call(this, sk, fireTime)
   }
 
+  /**
+   * Builds derived rollup log entries for one configured rollup spec.
+   * Averages entries of a source stat log over fixed time windows and
+   * persists one entry per completed window, catching up windows missed
+   * while the worker was down.
+   * @method buildRollup
+   * @memberof WrkProcVar
+   * @param {Object} spec - Rollup spec from conf.thing.rollupLogs
+   * @param {string} spec.srcKey - Source log key (e.g. 'stat-5m')
+   * @param {string} spec.destKey - Destination log key (e.g. 'energy-1h')
+   * @param {string[]} spec.fields - Fields to average (numbers or flat objects)
+   * @param {number} [spec.windowMs=3600000] - Rollup window size
+   * @param {number} [spec.maxCatchUpWindows=48] - Max windows recomputed per run
+   * @param {Date} fireTime - Scheduler fire time
+   * @returns {Promise<void>}
+   */
+  async buildRollup (spec, fireTime) {
+    return lWrkFunRollups.buildRollup.call(this, spec, fireTime)
+  }
+
   async _saveRealTimeData () {
     if (this._collectingRtd) return
     this._collectingRtd = true
@@ -1853,6 +1874,17 @@ class WrkProcVar extends TetherWrkBase {
           this.scheduler_0.add(sk, (fireTime) => {
             this.buildStats(sk, fireTime)
           }, tfs[1])
+        }
+
+        const rollupSpecs = Array.isArray(thingConf.rollupLogs) ? thingConf.rollupLogs : []
+        for (const spec of rollupSpecs) {
+          if (!lWrkFunRollups.isValidSpec(spec)) {
+            continue
+          }
+
+          this.scheduler_0.add(`rollup-${spec.destKey}`, (fireTime) => {
+            this.buildRollup(spec, fireTime)
+          }, spec.cron || lWrkFunRollups.DEFAULT_CRON)
         }
 
         await this._resolveConfigurableAlertParams()
