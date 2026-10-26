@@ -18,7 +18,7 @@ const lWrkFunSettings = require('./lib/wrk-fun-settings')
 const { exit } = require('node:process')
 const { chmod } = require('node:fs/promises')
 const path = require('node:path')
-const { getLogsCountForTimeRange, getLogMaxHeight, getJsonChanges, aggregateLogs, getThingSorter } = require('./lib/utils')
+const { getLogsCountForTimeRange, getLogMaxHeight, getJsonChanges, aggregateLogs, getThingSorter, sanitizeProjection, assertSafeThingQuery } = require('./lib/utils')
 const { STAT_RTD, OPTIONAL_CONFIGS, RPC_METHODS, AUDIT_METHODS, MAIN_DB } = require('./lib/constants')
 
 class WrkProcVar extends TetherWrkBase {
@@ -1316,9 +1316,10 @@ class WrkProcVar extends TetherWrkBase {
   }
 
   _applyFilters (things, req, returnObjects = false) {
-    if (!gLibUtilBase.isNil(req.query) || !gLibUtilBase.isNil(req.fields)) {
+    const fields = sanitizeProjection(req.fields)
+    if (!gLibUtilBase.isNil(req.query) || fields) {
       const query = new mingo.Query(req.query || {})
-      things = query.find(things, req.fields || {}).all()
+      things = query.find(things, fields || {}).all()
     }
     /*
       Mingo's built-in sorter does not support custom sorting functions.
@@ -1350,13 +1351,15 @@ class WrkProcVar extends TetherWrkBase {
   }
 
   _filterThings (req, returnObjects = false) {
+    assertSafeThingQuery(req.query)
+    assertSafeThingQuery(req.sort)
     const things = Object.values(this.mem.things)
     return this._applyFilters(things, req, returnObjects)
   }
 
   _projection (data, fields = {}) {
     const query = new mingo.Query({})
-    const cursor = query.find(data, fields)
+    const cursor = query.find(data, sanitizeProjection(fields) || {})
     return cursor.all()
   }
 
@@ -1399,6 +1402,7 @@ class WrkProcVar extends TetherWrkBase {
     let things = Object.values(this.mem.things)
 
     if (req.query) {
+      assertSafeThingQuery(req.query)
       const query = new mingo.Query(req.query)
       things = query.find(things).all()
     }

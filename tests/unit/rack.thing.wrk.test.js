@@ -577,6 +577,63 @@ test('WrkProcVar: _projection', async t => {
   t.absent(out[0].b)
 })
 
+test('WrkProcVar: listThings projection cannot rename device credentials past the redaction', async t => {
+  const w = protoWorker()
+  w.mem.things = {
+    b1: {
+      id: 'b1',
+      code: 'B001',
+      info: { n: 1 },
+      comments: [],
+      opts: { address: '10.0.2.22', port: 80, username: 'root', password: 'Tr0ub4dor&3' },
+      ctrl: { conf: { defaultPassword: 'fleet-default' } }
+    }
+  }
+
+  const renamed = w.listThings({ fields: { info: '$opts.password', comments: '$opts.username' } })
+  t.alike(renamed[0].info, { n: 1 }, 'field-path rename is ignored')
+  t.alike(renamed[0].comments, [])
+
+  const whole = JSON.stringify(w.listThings({ fields: { info: '$$ROOT' } }))
+  t.absent(whole.includes('Tr0ub4dor&3'), '$$ROOT does not expose the device password')
+  t.absent(whole.includes('fleet-default'), '$$ROOT does not expose the controller config')
+
+  const included = w.listThings({ fields: { id: 1, info: 1, opts: 1 } })
+  t.is(included[0].info.n, 1, 'inclusion projections still work')
+  t.absent(included[0].opts, 'opts stays redacted')
+})
+
+test('WrkProcVar: thing filters and sorts cannot read device credentials', async t => {
+  const w = protoWorker()
+  w.mem.things = {
+    b1: { id: 'b1', info: {}, opts: { address: '10.0.2.22', port: 80, password: 'Tr0ub4dor&3' }, ctrl: { conf: { defaultPassword: 'd' } } }
+  }
+
+  for (const query of [
+    { 'opts.password': { $regex: '^T' } },
+    { opts: { address: '10.0.2.22', port: 80, password: 'Tr0ub4dor&3' } },
+    { $or: [{ 'ctrl.conf.defaultPassword': 'd' }] },
+    { $expr: { $eq: ['$opts.password', 'x'] } }
+  ]) {
+    t.exception(() => w.listThings({ query }), /ERR_QUERY_PATH_FORBIDDEN/, JSON.stringify(query))
+  }
+  t.exception(() => w.getThingsCount({ query: { 'opts.password': 'x' } }), /ERR_QUERY_PATH_FORBIDDEN/)
+  t.exception(() => w.listThings({ sort: { 'opts.password': 1 } }), /ERR_QUERY_PATH_FORBIDDEN/)
+
+  t.is(w.listThings({ query: { 'opts.address': { $in: ['10.0.2.22'] } } }).length, 1, 'address stays queryable')
+  t.is(w.getThingsCount({ query: { 'opts.port': 80 } }), 1, 'port stays queryable')
+})
+
+test('WrkProcVar: projections cannot write through __proto__', async t => {
+  const w = protoWorker()
+  w.mem.things = { a: { id: 'a', info: {} } }
+
+  w.listThings({ fields: { '__proto__.limit': 'x' } })
+  w._projection([{ a: 1 }], { '__proto__.limit': 'x', 'constructor.prototype.limit': 1 })
+  t.is({}.limit, undefined, 'Object.prototype is untouched')
+  t.is(w.listThings({}).length, 1, 'listing still uses the default limit')
+})
+
 test('WrkProcVar: _transformAlerts and _transformInfoHistory', async t => {
   const w = protoWorker()
   w.mem.things = {
