@@ -353,6 +353,59 @@ const getThingSorter = (a, b, sortBy) => {
   return 0 // If all sort keys are equal, maintain order
 }
 
+const UNSAFE_PATH_SEGMENTS = new Set(['__proto__', 'constructor', 'prototype'])
+
+/**
+ * Restricts a caller's projection to the `{ path: 0 | 1 }` shape the openrpc contract declares.
+ * Any other value is a mingo expression that can copy one field into another (moving device
+ * credentials past the post-projection redaction in listThings) or write through `__proto__`,
+ * so it is dropped rather than evaluated.
+ * @param {Object} fields - Caller-supplied projection
+ * @returns {Object|undefined} Safe projection, or undefined when nothing usable remains
+ */
+function sanitizeProjection (fields) {
+  if (!fields || typeof fields !== 'object' || Array.isArray(fields)) return undefined
+
+  const clean = {}
+  for (const [path, value] of Object.entries(fields)) {
+    if (value !== 0 && value !== 1) continue
+    if (path.split('.').some(segment => UNSAFE_PATH_SEGMENTS.has(segment))) continue
+    clean[path] = value
+  }
+
+  return Object.keys(clean).length ? clean : undefined
+}
+
+// Device records keep their credentials under `opts` and the live driver (holding the rack's default
+// credentials and pool passwords) under `ctrl`. Filtering or sorting on those paths is a blind oracle for
+// the secret, since which things come back reveals whether a guess matched, so only the connection
+// fields the listing already returns may be queried.
+const QUERYABLE_OPTS_PATHS = new Set(['opts.address', 'opts.port', 'opts.containerId'])
+const CODE_OPERATORS = new Set(['$where', '$expr', '$function', '$accumulator'])
+
+function isSecretThingPath (path) {
+  const root = path.split('.')[0]
+  if (root === 'ctrl') return true
+  return root === 'opts' && !QUERYABLE_OPTS_PATHS.has(path)
+}
+
+/**
+ * Rejects a thing filter or sort that reads device credentials, directly or through a code operator.
+ * @param {*} value - Caller-supplied mingo query or sort spec
+ * @throws {Error} ERR_QUERY_PATH_FORBIDDEN
+ */
+function assertSafeThingQuery (value) {
+  if (value == null || typeof value !== 'object') return
+  if (Array.isArray(value)) return value.forEach(assertSafeThingQuery)
+
+  for (const [key, child] of Object.entries(value)) {
+    if (CODE_OPERATORS.has(key) || (!key.startsWith('$') && isSecretThingPath(key))) {
+      throw new Error('ERR_QUERY_PATH_FORBIDDEN')
+    }
+    assertSafeThingQuery(child)
+  }
+}
+
 module.exports = {
   isValidSnap,
   isOffline,
@@ -360,5 +413,7 @@ module.exports = {
   getLogMaxHeight,
   getJsonChanges,
   aggregateLogs,
-  getThingSorter
+  getThingSorter,
+  sanitizeProjection,
+  assertSafeThingQuery
 }

@@ -9,7 +9,9 @@ const {
   isOffline,
   getLogMaxHeight,
   aggregateLogs,
-  getThingSorter
+  getThingSorter,
+  sanitizeProjection,
+  assertSafeThingQuery
 } = require('../../workers/lib/utils')
 
 const DEFAULT_TIMEFRAMES = [
@@ -338,4 +340,22 @@ test('getJsonChanges', async main => {
       })
     )
   })
+})
+
+test('sanitizeProjection keeps only 0/1 values on safe paths', t => {
+  t.alike(sanitizeProjection({ id: 1, 'info.n': 1, comments: 0 }), { id: 1, 'info.n': 1, comments: 0 })
+  t.alike(sanitizeProjection({ id: 1, info: '$opts.password', last: true, x: { $literal: 1 } }), { id: 1 })
+  t.alike(sanitizeProjection({ '__proto__.limit': 1, 'a.constructor': 1, 'prototype.b': 0, ok: 1 }), { ok: 1 })
+  t.is(sanitizeProjection({ info: '$$ROOT' }), undefined)
+  t.is(sanitizeProjection(null), undefined)
+  t.is(sanitizeProjection([1]), undefined)
+  t.is(sanitizeProjection('a'), undefined)
+})
+
+test('assertSafeThingQuery allows connection fields and rejects credential paths', t => {
+  t.execution(() => assertSafeThingQuery({ 'opts.address': { $regex: '^10' }, 'opts.containerId': 'c1', 'info.pos': 1 }))
+  t.execution(() => assertSafeThingQuery(undefined))
+  t.exception(() => assertSafeThingQuery({ 'opts.username': 'root' }), /ERR_QUERY_PATH_FORBIDDEN/)
+  t.exception(() => assertSafeThingQuery({ $and: [{ 'ctrl.opts.password': 'x' }] }), /ERR_QUERY_PATH_FORBIDDEN/)
+  t.exception(() => assertSafeThingQuery({ $where: 'true' }), /ERR_QUERY_PATH_FORBIDDEN/)
 })
